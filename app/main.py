@@ -10,7 +10,7 @@ def main():
         while True: 
             response = connection.recv(1024)  # Receive data as bytes object from the socket
             connection.sendall(b'+PONG\r\n')  # Send data to the socket
-            if not response: # Exit the loop if the response if empty
+            if response == b'': # Exit the loop if the response is empty
                 break
         connection.close()
 
