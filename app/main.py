@@ -6,10 +6,12 @@ def main():
     response = None
 
     while True: 
-        while response != "b''": 
-            connection, _ = server_socket.accept() 
-            connection.recv(1024)
-            connection.sendall(b'+PONG\r\n')
+        while response != b'': 
+            connection, _ = server_socket.accept()  # Return a new socket representing the client connection
+            response = connection.recv(1024)  # Receive data as bytes object from socket
+            connection.sendall(b'+PONG\r\n')  # Send data to the socket
+        connection.close() 
+        response = None
 
 
 if __name__ == '__main__':
