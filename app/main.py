@@ -6,7 +6,7 @@ def main():
     connection, _ = server_socket.accept() # wait for client
     
     while True: 
-        connection.recv(bufsize=1024)
+        connection.recv(1024)
         connection.sendall(b"+PONG\r\n")
 
 
