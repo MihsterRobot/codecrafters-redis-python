@@ -13,6 +13,7 @@ def main():
             if response == b'': # Exit the loop if the response is empty
                 connection.close()
                 break
+            continue
 
 
 if __name__ == '__main__':
