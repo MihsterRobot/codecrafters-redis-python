@@ -4,8 +4,7 @@ import asyncio
 
 async def handle_client(reader, writer):
      while True:
-        response = reader.read(1024)  # Receive data as bytes object from the socket
-        await response
+        response = await reader.read(1024)  # Receive data as bytes object from the socket
         writer.write(b'+PONG\r\n')  # Send data to the socket
         if response == b'': # Close the connection and exit the loop if the response is empty
             writer.close()
@@ -14,8 +13,8 @@ async def handle_client(reader, writer):
 
 
 async def main():
-    server_socket = asyncio.start_server(handle_client, 'localhost', 6379)
-    await server_socket
+    server_socket = await asyncio.start_server(handle_client, 'localhost', 6379)
+    server_socket.serve_forever()
 
 
 if __name__ == '__main__':
