@@ -1,19 +1,22 @@
 import socket  # noqa: F401
+import asyncio
+
+
+async def handle_client(reader, writer):
+     while True:
+        response = connection.recv(1024)  # Receive data as bytes object from the socket
+        connection.sendall(b'+PONG\r\n')  # Send data to the socket
+        if response == b'': # Close the connection and exit the loop if the response is empty
+            connection.close()
+            break
+
 
 
 def main():
-    server_socket = socket.create_server(('localhost', 6379), reuse_port=True)
-    response = None
+    server_socket = asyncio.start_server(handle_client())
+    
 
-    while True:
-        connection, _ = server_socket.accept()  # Establish a connection with the client
-        while True: 
-            response = connection.recv(1024)  # Receive data as bytes object from the socket
-            connection.sendall(b'+PONG\r\n')  # Send data to the socket
-            if response == b'': # Exit the loop if the response is empty
-                connection.close()
-                break
-            continue
+   
 
 
 if __name__ == '__main__':
