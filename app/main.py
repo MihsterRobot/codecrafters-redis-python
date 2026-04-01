@@ -14,7 +14,7 @@ async def handle_client(reader, writer):
 
 async def main():
     server_socket = await asyncio.start_server(handle_client, 'localhost', 6379)
-    server_socket.serve_forever()
+    await server_socket.serve_forever()
 
 
 if __name__ == '__main__':
