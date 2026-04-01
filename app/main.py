@@ -13,7 +13,7 @@ async def handle_client(reader, writer):
 
 
 async def main():
-    server_socket = asyncio.start_server(handle_client, 'local host', 6379)
+    server_socket = asyncio.start_server(handle_client, 'localhost', 6379)
 
 
 if __name__ == '__main__':
