@@ -6,9 +6,8 @@ def main():
     connection, _ = server_socket.accept() # wait for client
     
     while True: 
-        connection.recv()
+        connection.recv(bufsize=1024)
         connection.sendall(b"+PONG\r\n")
-
 
 
 if __name__ == '__main__':
