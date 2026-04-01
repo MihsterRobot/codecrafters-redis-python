@@ -11,8 +11,8 @@ def main():
             response = connection.recv(1024)  # Receive data as bytes object from the socket
             connection.sendall(b'+PONG\r\n')  # Send data to the socket
             if response == b'': # Exit the loop if the response is empty
+                connection.close()
                 break
-        connection.close()
 
 
 if __name__ == '__main__':
