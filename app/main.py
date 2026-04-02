@@ -1,6 +1,8 @@
 import socket  # noqa: F401
 import asyncio
 
+from . import resp as r
+from . import commands as c
 
 async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
     # This coroutine is called automatically by the event loop each time a new
@@ -12,9 +14,11 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
         # run while this one waits.
         request = await reader.read(1024)
 
-        # Send a hardcoded PONG response back to the client.
-        # +PONG\r\n is the RESP2 simple string encoding of PONG.
-        writer.write(b'+PONG\r\n')
+        cmd_name, arg = r.parse_resp(request)
+        if cmd_name in c.COMMANDS: 
+            handler = c.COMMANDS[cmd_name]
+            result = handler(arg)
+            writer.write(result)
 
         # An empty bytes object signals that the client has closed the connection.
         # Close the writer, wait for the connection to fully flush and release,
@@ -36,6 +40,6 @@ async def main():
 
 
 if __name__ == '__main__':
-    # Create the event loop, run main() until it completes (it won't, by design),
-    # and handle cleanup on exit.
+    # Start the event loop and run main() indefinitely.
+    # Handles cleanup when the process is interrupted.
     asyncio.run(main())
