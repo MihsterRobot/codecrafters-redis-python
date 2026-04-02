@@ -10,6 +10,7 @@ def run_echo(args: str) -> bytes:
 
 
 def run_set(args: str) -> bytes:
+    print(args)
     key = args[0]
     value = args[1]
     STORE[key] = value
