@@ -20,7 +20,7 @@ def run_get(args: str) -> bytes:
     value = STORE[args[0]]
     if value is None: 
         return b'$-1\r\n'
-    return f'*{len(value)}\r\n{value}\r\n'.encode()
+    return f'${len(value)}\r\n{value}\r\n'.encode()
 
 
 COMMANDS = {
