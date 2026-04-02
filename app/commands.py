@@ -9,11 +9,11 @@ def run_echo(args: str) -> bytes:
     return f'${len(args)}\r\n{args}\r\n'.encode()
 
 
-def run_set(args: str) -> str:
+def run_set(args: str) -> bytes:
     key = args[0]
     value = args[1]
     STORE[key] = value
-    return '+OK\r\n'
+    return b'+OK\r\n'
 
 
 def run_get(args: str) -> bytes:
