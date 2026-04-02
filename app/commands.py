@@ -10,9 +10,9 @@ def run_echo(args: str) -> bytes:
 
 
 def run_set(args: str) -> bytes:
-    print(args)
-    key = args[0]
-    value = args[1]
+    dict_parts = args.split()
+    key = dict_parts[0]
+    value = dict_parts[1]
     STORE[key] = value
     return b'+OK\r\n'
 
