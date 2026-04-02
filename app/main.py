@@ -14,10 +14,10 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
         # run while this one waits.
         request = await reader.read(1024)
 
-        cmd_name, arg = r.parse_resp(request)
+        cmd_name, args = r.parse_resp(request)
         if cmd_name in c.COMMANDS: 
             handler = c.COMMANDS[cmd_name]
-            result = handler(arg)
+            result = handler(args)
             writer.write(result)
 
         # An empty bytes object signals that the client has closed the connection.
