@@ -3,7 +3,7 @@ def run_ping(arg: str) -> bytes:
 
 
 def run_echo(arg: str) -> bytes:
-    return f'${len(arg)}\r\narg\r\n'.encode()
+    return f'${len(arg)}\r\n{arg}\r\n'.encode()
 
 
 COMMANDS = {
