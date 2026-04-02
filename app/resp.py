@@ -12,8 +12,6 @@ def parse_resp(data: bytes) -> tuple[str, str]:
         cmd_parts.append(tokens[i].decode())
 
     cmd_name = cmd_parts[0]
-    arg = ''
-    if len(cmd_parts) > 1:
-        arg = cmd_parts[1]
-
+    arg = cmd_parts[1] if len(cmd_parts) > 1 else ''
+    
     return cmd_name, arg
