@@ -33,15 +33,15 @@ def run_set(args: list[str]) -> bytes:
 
 def run_get(args: list[str]) -> bytes:
     key = args[0]
-    data = STORE.get(key)
+    entry = STORE.get(key)
 
-    if data is None: 
+    if entry is None: 
         return b'$-1\r\n'
     # If there's an expiry time and the current time exceeds it, the key is expired. 
-    elif data.expiry_time is not None and time.time() > data.expiry_time: 
+    elif entry.expiry_time is not None and time.time() > entry.expiry_time: 
         return b'$-1\r\n'
     
-    return f'${len(data.value)}\r\n{data.value}\r\n'.encode()
+    return f'${len(entry.value)}\r\n{entry.value}\r\n'.encode()
 
 
 COMMANDS = {
