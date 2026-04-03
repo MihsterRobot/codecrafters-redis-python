@@ -19,14 +19,13 @@ def run_set(args: list[str]) -> bytes:
         expiry_time = time.time() + int(args[3])
 
     key, value = args[0], (args[1], expiry_time)
-    print(key, value)
     STORE[key] = value
     return b'+OK\r\n'
 
 
 def run_get(args: list[str]) -> bytes:
     value = STORE.get(args[0])
-    if value is None: 
+    if value is None or time.time() > value[1]: 
         return b'$-1\r\n'
     return f'${len(value)}\r\n{value}\r\n'.encode()
 
