@@ -45,14 +45,15 @@ def run_get(args: list[str]) -> bytes:
 
 
 def run_rpush(args: list[str]) -> bytes: 
-    list_name = list(args[0])
-    element = args[0]
+    key = args[0]
+    element = args[1]
+    a_list = STORE.get(key)
 
-    if not list_name: 
-        list_name = []
-    list_name.append(element)
+    if a_list is None: 
+        a_list = []
+    a_list.append(element)
         
-    return f':{len(list_name)}\r\n'.encode()
+    return f':{len(a_list)}\r\n'.encode()
 
 
 COMMANDS = {
