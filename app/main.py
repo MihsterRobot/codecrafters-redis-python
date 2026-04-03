@@ -15,6 +15,7 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
         request = await reader.read(1024)
 
         cmd_name, args = r.parse_resp(request)
+        print('ARGS', args)
         if cmd_name in c.COMMANDS: 
             handler = c.COMMANDS[cmd_name]
             result = handler(args)
