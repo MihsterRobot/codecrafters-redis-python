@@ -80,5 +80,6 @@ COMMANDS = {
     'ECHO': run_echo,
     'SET': run_set,
     'GET': run_get,
-    'RPUSH': run_rpush
+    'RPUSH': run_rpush,
+    'LRANGE': run_lrange
 }
