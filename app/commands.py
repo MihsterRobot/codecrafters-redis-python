@@ -5,7 +5,7 @@ STORE = {}
 
 
 class StoreEntry(NamedTuple): 
-    value: str
+    value: str | list[str]
     expiry_time: float | None
 
 
@@ -46,14 +46,17 @@ def run_get(args: list[str]) -> bytes:
 
 def run_rpush(args: list[str]) -> bytes: 
     key = args[0]
-    element = args[1]
-    a_list = STORE.get(key)
+    elements = args[1:]
+    lst = STORE.get(key)
 
-    if a_list is None: 
-        a_list = []
-    a_list.append(element)
+    if lst is None: 
+        lst = []
+    for elmt in elements: 
+        lst.append(elmt)
+
+    STORE[key] = StoreEntry(value=lst, expiry_time=None)
         
-    return f':{len(a_list)}\r\n'.encode()
+    return f':{len(lst)}\r\n'.encode()
 
 
 COMMANDS = {
