@@ -64,10 +64,12 @@ def run_lrange(args: list[str]) -> bytes:
     lst = entry.value
 
     start, stop = int(args[1]), int(args[2])
+    print('before', start, stop)
     if start > stop or start >= len(lst): 
         return b'*0\r\n'  
     start = len(lst) - abs(start) if start < 0 else start
     stop = len(lst) - abs(stop) if stop < 0 else stop
+    print('after', start, stop)
 
     resp_lst = [f'*{len(lst[start:stop+1])}\r\n']
     for elmt in lst[start:stop+1]:
