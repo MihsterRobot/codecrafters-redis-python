@@ -32,7 +32,8 @@ def run_set(args: list[str]) -> bytes:
 
 
 def run_get(args: list[str]) -> bytes:
-    data = STORE.get(args[0])
+    key = args[0]
+    data = STORE.get(key)
 
     if data is None: 
         return b'$-1\r\n'
