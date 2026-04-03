@@ -67,12 +67,12 @@ def run_lrange(args: list[str]) -> bytes:
     if start > stop or start >= len(lst): 
         return b'*0\r\n'  
 
-    resp_lst = [f'*{len(lst)}\r\n']
+    resp_lst = [f'*{len(lst[start:stop+1])}\r\n']
     for elmt in lst[start:stop+1]:
         resp_lst.append(f'${len(elmt)}\r\n')
         resp_lst.append(f'{elmt}\r\n')
     
-    return b'resp_lst'
+    return ''.join(resp_lst).encoded()
 
 
 COMMANDS = {
