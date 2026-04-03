@@ -1,3 +1,5 @@
+import time
+
 STORE = {}
 
 
@@ -10,7 +12,14 @@ def run_echo(args: list[str]) -> bytes:
 
 
 def run_set(args: list[str]) -> bytes:
-    key, value = args[0], args[1]
+    expiry_time = None
+    if 'PX' in args: 
+        expiry_time = time.time() + (int(args[3]) / 1000)
+    elif 'EX' in args: 
+        expiry_time = time.time() + int(args[3])
+
+    key, value = args[0], (args[1], expiry_time)
+    print(key, value)
     STORE[key] = value
     return b'+OK\r\n'
 
