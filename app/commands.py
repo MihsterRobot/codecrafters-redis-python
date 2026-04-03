@@ -1,6 +1,12 @@
 import time
+from typing import NamedTuple
 
 STORE = {}
+
+
+class StoreEntry(NamedTuple): 
+    value: str
+    expiry_time: float | None
 
 
 def run_ping(args: list[str]) -> bytes:
@@ -13,23 +19,27 @@ def run_echo(args: list[str]) -> bytes:
 
 def run_set(args: list[str]) -> bytes:
     expiry_time = None
+
     if 'PX' in args: 
         expiry_time = time.time() + (int(args[3]) / 1000)
     elif 'EX' in args: 
         expiry_time = time.time() + int(args[3])
 
-    key, value = args[0], (args[1], expiry_time)
-    STORE[key] = value
+    STORE[args[0]] = StoreEntry(value=args[1], expiry_time=expiry_time)
+
     return b'+OK\r\n'
 
 
 def run_get(args: list[str]) -> bytes:
-    value = STORE.get(args[0])
-    if value is None: 
+    data = STORE.get(args[0])
+
+    if data is None: 
         return b'$-1\r\n'
-    if value[1] is not None and time.time() > value[1]: 
+    # If there's an expiry time and the current time exceeds it, the key is expired. 
+    elif data.expiry_time is not None and time.time() > data.expiry_time: 
         return b'$-1\r\n'
-    return f'${len(value[0])}\r\n{value[0]}\r\n'.encode()
+    
+    return f'${len(data.value)}\r\n{data.value}\r\n'.encode()
 
 
 COMMANDS = {
