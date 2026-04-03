@@ -1,4 +1,4 @@
-def parse_resp(data: bytes) -> tuple[str, str]:
+def parse_resp(data: bytes) -> tuple[str, list[str]]:
     crlf = b'\r\n'
 
     # Remove terminators to isolate the data and their size identifiers.
@@ -12,6 +12,6 @@ def parse_resp(data: bytes) -> tuple[str, str]:
         cmd_parts.append(tokens[i].decode())
 
     cmd_name = cmd_parts[0]
-    args = cmd_parts[1:] if len(cmd_parts) > 1 else ''
+    args = cmd_parts[1:] if len(cmd_parts) > 1 else []
 
-    return cmd_name, ' '.join(args)
+    return cmd_name, args
