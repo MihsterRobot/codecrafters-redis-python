@@ -69,7 +69,7 @@ def run_lrange(args: list[str]) -> bytes | list[bytes]:
 
     resp_lst = [f'*{len(lst)}\r\n'.encode()]
     for elmt in lst[start:stop+1]:
-        resp_lst.append(f'{len(elmt)}\r\n'.encode())
+        resp_lst.append(f'${len(elmt)}\r\n'.encode())
         resp_lst.append(f'{elmt}\r\n'.encode())
     
     return resp_lst
