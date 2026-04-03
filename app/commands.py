@@ -27,7 +27,7 @@ def run_get(args: list[str]) -> bytes:
     value = STORE.get(args[0])
     if value is None or time.time() > value[1]: 
         return b'$-1\r\n'
-    return f'${len(value)}\r\n{value}\r\n'.encode()
+    return f'${len(value[0])}\r\n{value[0]}\r\n'.encode()
 
 
 COMMANDS = {
