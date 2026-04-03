@@ -25,7 +25,8 @@ def run_set(args: list[str]) -> bytes:
     elif 'EX' in args: 
         expiry_time = time.time() + int(args[3])
 
-    STORE[args[0]] = StoreEntry(value=args[1], expiry_time=expiry_time)
+    key = args[0]
+    STORE[key] = StoreEntry(value=args[1], expiry_time=expiry_time)
 
     return b'+OK\r\n'
 
