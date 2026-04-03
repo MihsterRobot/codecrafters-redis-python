@@ -25,7 +25,9 @@ def run_set(args: list[str]) -> bytes:
 
 def run_get(args: list[str]) -> bytes:
     value = STORE.get(args[0])
-    if value is None or value[1] is None or time.time() > value[1]: 
+    if value is None: 
+        return b'$-1\r\n'
+    if value[1] is not None and time.time() > value[1]: 
         return b'$-1\r\n'
     return f'${len(value[0])}\r\n{value[0]}\r\n'.encode()
 
