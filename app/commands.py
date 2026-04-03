@@ -72,7 +72,7 @@ def run_lrange(args: list[str]) -> bytes:
         resp_lst.append(f'${len(elmt)}\r\n')
         resp_lst.append(f'{elmt}\r\n')
     
-    return ''.join(resp_lst).encoded()
+    return ''.join(resp_lst).encode()
 
 
 COMMANDS = {
