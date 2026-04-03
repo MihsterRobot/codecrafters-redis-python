@@ -18,6 +18,7 @@ def run_echo(args: list[str]) -> bytes:
 
 
 def run_set(args: list[str]) -> bytes:
+    key = args[0]
     expiry_time = None
 
     if 'PX' in args: 
@@ -25,7 +26,6 @@ def run_set(args: list[str]) -> bytes:
     elif 'EX' in args: 
         expiry_time = time.time() + int(args[3])
 
-    key = args[0]
     STORE[key] = StoreEntry(value=args[1], expiry_time=expiry_time)
 
     return b'+OK\r\n'
