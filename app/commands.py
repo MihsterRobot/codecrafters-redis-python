@@ -44,9 +44,21 @@ def run_get(args: list[str]) -> bytes:
     return f'${len(entry.value)}\r\n{entry.value}\r\n'.encode()
 
 
+def run_rpush(args: list[str]) -> bytes: 
+    list_name = list(args[0])
+    element = args[0]
+
+    if not list_name: 
+        list_name = []
+    list_name.append(element)
+        
+    return f':{len(list_name)}\r\n'.encode()
+
+
 COMMANDS = {
     'PING': run_ping,
     'ECHO': run_echo,
     'SET': run_set,
-    'GET': run_get
+    'GET': run_get,
+    'RPUSH': run_rpush
 }
