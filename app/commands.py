@@ -45,15 +45,34 @@ def run_get(args: list[str]) -> bytes:
 
 
 def run_rpush(args: list[str]) -> bytes: 
-    key = args[0]
-    elements = args[1:]
+    key, elements = args[0], args[1:]
     entry = STORE.get(key)
 
     lst = entry.value if entry is not None else []
     lst.extend(elements)
     STORE[key] = StoreEntry(value=lst, expiry_time=None)
-    
+
     return f':{len(lst)}\r\n'.encode()
+
+
+def run_lrange(args: list[str]) -> bytes | list[bytes]:
+    key = args[0]
+    entry = STORE.get(key)
+
+    if entry is None:
+        return b'*0\r\n'  
+    lst = entry.value
+
+    start, stop = int(args[1]), int(args[2])
+    if start > stop or start >= len(lst): 
+        return b'*0\r\n'  
+
+    resp_lst = [f'{len(lst)}\r\n'.encode()]
+    for elmt in lst[start:stop+1]:
+        resp_lst.append(f'{len(elmt)}\r\n'.encode())
+        resp_lst.append(f'{elmt}\r\n'.encode())
+    
+    return resp_lst
 
 
 COMMANDS = {
