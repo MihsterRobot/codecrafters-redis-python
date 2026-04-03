@@ -66,9 +66,8 @@ def run_lrange(args: list[str]) -> bytes:
     start, stop = int(args[1]), int(args[2])
     if start > stop or start >= len(lst): 
         return b'*0\r\n'  
-
-    start = len(lst) - start if start < 0 else start
-    stop = len(lst) - stop if stop < 0 else stop
+    start = len(lst) - abs(start) if start < 0 else start
+    stop = len(lst) - abs(stop) if stop < 0 else stop
 
     resp_lst = [f'*{len(lst[start:stop+1])}\r\n']
     for elmt in lst[start:stop+1]:
