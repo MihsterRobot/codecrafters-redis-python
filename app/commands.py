@@ -59,23 +59,31 @@ def run_lrange(args: list[str]) -> bytes:
     key = args[0]
     entry = STORE.get(key)
 
+    # Return an empty array if the key doesn't exist.
     if entry is None:
         return b'*0\r\n'  
     lst = entry.value
 
     start, stop = int(args[1]), int(args[2])
-    start = len(lst) - abs(start) if start < 0 else start
+
+    # Convert negative indexes to their positive equivalents.
+    # Bound start to 0 if the negative index exceeds the list length.
+    start = max(0, len(lst) - abs(start)) if start < 0 else start
     stop = len(lst) - abs(stop) if stop < 0 else stop
-    
+
+    # Bound stop to the last valid index if it exceeds the list length.
+    if stop >= len(lst): 
+        stop = len(lst) - 1
+
     if start >= len(lst) or start > stop: 
         return b'*0\r\n'  
-  
 
     resp_lst = [f'*{len(lst[start:stop+1])}\r\n']
     for elmt in lst[start:stop+1]:
         resp_lst.append(f'${len(elmt)}\r\n')
         resp_lst.append(f'{elmt}\r\n')
     
+    # Join the RESP parts into a single continuous bytes object before sending over the socket.
     return ''.join(resp_lst).encode()
 
 
