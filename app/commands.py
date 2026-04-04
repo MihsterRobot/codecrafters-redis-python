@@ -65,17 +65,12 @@ def run_lrange(args: list[str]) -> bytes:
     
     lst = entry.value
     lst_size = len(lst)
-    start, stop = int(args[1]), int(args[2])
-    
-    # Convert negative indexes to their positive equivalents using the list length as the offset.
-    start = lst_size + start if start < 0 else start
-    stop = lst_size + stop if stop < 0 else stop
 
-    # Previous version —
-    # Convert negative indexes to their positive equivalents.
+    # Convert negative indexes to their positive equivalents using the list length as the offset.
     # Clamp any out-of-bounds negative index to 0.
-    # start = max(0, len(lst) - abs(start) if start < 0 else start)
-    # stop = max(0, len(lst) - abs(stop) if stop < 0 else stop)
+    start, stop = int(args[1]), int(args[2])
+    start = max(0, lst_size + start if start < 0 else start)
+    stop = max(0, lst_size + stop if stop < 0 else stop)
 
     # Clamp stop to the last valid index if it exceeds the list length.
     if stop >= lst_size: 
