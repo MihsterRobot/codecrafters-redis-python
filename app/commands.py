@@ -91,11 +91,23 @@ def run_lrange(args: list[str]) -> bytes:
     return ''.join(resp_lst).encode()
 
 
+def run_lpush(args: list[str]) -> bytes: 
+    key, elements = args[0], args[1:]
+    entry = STORE.get(key)
+
+    lst = entry.value if entry is not None else []
+    lst.reverse()
+    STORE[key] = StoreEntry(value=lst, expiry_time=None)
+
+    return f':{len(lst)}\r\n'.encode()
+
+
 COMMANDS = {
     'PING': run_ping,
     'ECHO': run_echo,
     'SET': run_set,
     'GET': run_get,
     'RPUSH': run_rpush,
-    'LRANGE': run_lrange
+    'LRANGE': run_lrange,
+    'LPUSH': run_lpush
 }
