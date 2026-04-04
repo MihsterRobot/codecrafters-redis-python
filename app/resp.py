@@ -4,7 +4,7 @@ def parse_resp(data: bytes) -> tuple[str, list[str]]:
     # Remove terminators to isolate the data and their size identifiers.
     tokens = data.split(crlf)
 
-    num_elements = int(len(tokens[0][1:]))
+    num_elements = int(tokens[0][1])
     stop = num_elements * 2 + 1
     cmd_parts = []
 
