@@ -86,7 +86,7 @@ def run_lrange(args: list[str]) -> bytes:
         return b'*0\r\n'  
 
     sliced = lst[start:stop+1]
-    resp_lst = [f'*{sliced}\r\n']
+    resp_lst = [f'*{len(sliced)}\r\n']
 
     for elmt in sliced:
         resp_lst.append(f'${len(elmt)}\r\n')
