@@ -52,7 +52,7 @@ def run_rpush(args: list[str]) -> bytes:
     lst.extend(elements)
     STORE[key] = StoreEntry(value=lst, expiry_time=None)
 
-    return f'*{len(lst)}\r\n'.encode()
+    return f':{len(lst)}\r\n'.encode()
 
 
 def run_lrange(args: list[str]) -> bytes:
