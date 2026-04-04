@@ -62,13 +62,14 @@ def run_lrange(args: list[str]) -> bytes:
     # Return an empty array if the key doesn't exist.
     if entry is None:
         return b'*0\r\n'  
+    
     lst = entry.value
-
+    lst_size = len(lst)
     start, stop = int(args[1]), int(args[2])
-
+    
     # Convert negative indexes to their positive equivalents using the list length as the offset.
-    start = len(lst) + start if start < 0 else start
-    stop = len(lst) + stop if stop < 0 else stop
+    start = lst_size + start if start < 0 else start
+    stop = lst_size + stop if stop < 0 else stop
 
     # Previous version —
     # Convert negative indexes to their positive equivalents.
@@ -77,11 +78,11 @@ def run_lrange(args: list[str]) -> bytes:
     # stop = max(0, len(lst) - abs(stop) if stop < 0 else stop)
 
     # Clamp stop to the last valid index if it exceeds the list length.
-    if stop >= len(lst): 
-        stop = len(lst) - 1
+    if stop >= lst_size: 
+        stop = lst_size - 1
 
     # Return an empty array if start is out of bounds or greater than stop.
-    if start >= len(lst) or start > stop: 
+    if start >= lst_size or start > stop: 
         return b'*0\r\n'  
 
     sliced = lst[start:stop+1]
