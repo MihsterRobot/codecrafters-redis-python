@@ -96,7 +96,7 @@ def run_lpush(args: list[str]) -> bytes:
     entry = STORE.get(key)
 
     lst = entry.value if entry is not None else []
-    lst.reverse()
+    lst = elements[::-1] + lst 
     STORE[key] = StoreEntry(value=lst, expiry_time=None)
 
     return f':{len(lst)}\r\n'.encode()
