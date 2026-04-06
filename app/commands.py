@@ -122,10 +122,22 @@ def run_lpop(args: list[str]) -> bytes:
     if not lst: 
         return b'$-1\r\n'
     
-    elmt = lst.pop(0)
+    num_elmts_to_pop = int(args[1]) 
+    if num_elmts_to_pop > len(lst): 
+        num_elmts_to_pop = len(lst) - 1
+    
+    popped_elmts = []
+    for i in lst[0:num_elmts_to_pop+1]: 
+        popped_elmts.append(lst.pop(0))
+
     STORE[key] = StoreEntry(value=lst, expiry_time=None)
 
-    return f'${len(elmt)}\r\n{elmt}\r\n'.encode()
+    resp_lst = [f'*{len(lst)}\r\n']
+    for elmt in popped_elmts:
+        resp_lst.append(f'${len(elmt)}\r\n')
+        resp_lst.append(f'{elmt}\r\n')
+
+    return ''.join(resp_lst).encode()
 
 
 COMMANDS = {
