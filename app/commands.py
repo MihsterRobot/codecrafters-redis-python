@@ -122,9 +122,14 @@ def run_lpop(args: list[str]) -> bytes:
     if not lst: 
         return b'$-1\r\n'
     
-    num_elmts_to_pop = int(args[1]) 
-    if num_elmts_to_pop > len(lst): 
-        num_elmts_to_pop = len(lst) - 1
+    num_elmts_to_pop = 1
+
+    if len(args) > 1:
+        num = int(args[1])
+        if num > len(lst): 
+            num_elmts_to_pop = len(lst) - 1
+        else: 
+            num_elmts_to_pop = num
     
     popped_elmts = []
     for elmt in lst[0:num_elmts_to_pop]: 
