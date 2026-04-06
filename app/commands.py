@@ -47,8 +47,8 @@ def run_get(args: list[str]) -> bytes:
 def run_rpush(args: list[str]) -> bytes: 
     key, elements = args[0], args[1:]
     entry = STORE.get(key)
-
     lst = entry.value if entry is not None else []
+    
     lst.extend(elements)
     STORE[key] = StoreEntry(value=lst, expiry_time=None)
 
