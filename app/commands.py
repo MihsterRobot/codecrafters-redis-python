@@ -109,7 +109,7 @@ def run_llen(args: list[str]) -> bytes:
     lst = entry.value if entry is not None else []
 
     if not lst:
-        return b'*0\r\n'
+        return b':0\r\n'
     
     return f':{len(lst)}\r\n'.encode()
 
