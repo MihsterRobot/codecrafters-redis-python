@@ -94,11 +94,23 @@ def run_lrange(args: list[str]) -> bytes:
 def run_lpush(args: list[str]) -> bytes: 
     key, elements = args[0], args[1:]
     entry = STORE.get(key)
-
     lst = entry.value if entry is not None else []
-    lst = elements[::-1] + lst 
+
+    # Reverse elements, prepend them to the existing list, and store the result. 
+    lst = elements[::-1] + lst  
     STORE[key] = StoreEntry(value=lst, expiry_time=None)
 
+    return f':{len(lst)}\r\n'.encode()
+
+
+def run_llen(args: list[str]) -> bytes:
+    key = args[0]
+    entry = STORE.get(key)
+    lst = entry.value if entry is not None else []
+
+    if not lst:
+        return b'*0\r\n'
+    
     return f':{len(lst)}\r\n'.encode()
 
 
@@ -109,5 +121,6 @@ COMMANDS = {
     'GET': run_get,
     'RPUSH': run_rpush,
     'LRANGE': run_lrange,
-    'LPUSH': run_lpush
+    'LPUSH': run_lpush,
+    'LLEN': run_llen,
 }
