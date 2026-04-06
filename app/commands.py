@@ -127,12 +127,12 @@ def run_lpop(args: list[str]) -> bytes:
         num_elmts_to_pop = len(lst) - 1
     
     popped_elmts = []
-    for i in lst[0:num_elmts_to_pop+1]: 
+    for elmt in lst[0:num_elmts_to_pop+1]: 
         popped_elmts.append(lst.pop(0))
 
     STORE[key] = StoreEntry(value=lst, expiry_time=None)
 
-    resp_lst = [f'*{len(lst)}\r\n']
+    resp_lst = [f'*{len(popped_elmts)}\r\n']
     for elmt in popped_elmts:
         resp_lst.append(f'${len(elmt)}\r\n')
         resp_lst.append(f'{elmt}\r\n')
