@@ -119,17 +119,20 @@ def run_lpop(args: list[str]) -> bytes:
     entry = STORE.get(key)
     lst = entry.value if entry is not None else []
 
-    if not lst: 
+    if not lst:  
         return b'$-1\r\n'
-    
-    num_elmts_to_pop = 1
 
-    if len(args) > 1:
-        num = int(args[1])
-        if num > len(lst): 
-            num_elmts_to_pop = len(lst) - 1
-        else: 
-            num_elmts_to_pop = num
+    if len(args) > 1:  # Only one element to pop (guard clause).
+        elmt = lst.pop(0)
+        return f'${len(elmt)}\r\n{elmt}\r\n'.encode()
+
+    num_elmts_to_pop = None
+    num = int(args[1])
+
+    if num > len(lst): 
+        num_elmts_to_pop = len(lst) - 1
+    else: 
+        num_elmts_to_pop = num
     
     popped_elmts = []
     for elmt in lst[0:num_elmts_to_pop]: 
