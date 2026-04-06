@@ -122,7 +122,7 @@ def run_lpop(args: list[str]) -> bytes:
     if not lst:  
         return b'$-1\r\n'
 
-    if len(args) > 1:  # Only one element to pop (guard clause).
+    if len(args) == 1:  # No size argument provided; pop the first index only.
         elmt = lst.pop(0)
         return f'${len(elmt)}\r\n{elmt}\r\n'.encode()
 
