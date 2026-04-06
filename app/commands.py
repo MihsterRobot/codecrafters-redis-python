@@ -48,7 +48,7 @@ def run_rpush(args: list[str]) -> bytes:
     key, elements = args[0], args[1:]
     entry = STORE.get(key)
     lst = entry.value if entry is not None else []
-    
+
     lst.extend(elements)
     STORE[key] = StoreEntry(value=lst, expiry_time=None)
 
@@ -114,6 +114,20 @@ def run_llen(args: list[str]) -> bytes:
     return f':{len(lst)}\r\n'.encode()
 
 
+def run_lpop(args: list[str]) -> bytes: 
+    key = args[0]
+    entry = STORE.get(key)
+    lst = entry.value if entry is not None else []
+
+    if not lst: 
+        return b'$-1\r\n'
+    
+    elmt = lst.pop(0)
+    STORE[key] = StoreEntry(value=lst, expiry_time=None)
+
+    return f'${len(elmt)}/r\n{elmt}\r\n'.encode()
+
+
 COMMANDS = {
     'PING': run_ping,
     'ECHO': run_echo,
@@ -123,4 +137,5 @@ COMMANDS = {
     'LRANGE': run_lrange,
     'LPUSH': run_lpush,
     'LLEN': run_llen,
+    'LPOP': run_lpop,
 }
