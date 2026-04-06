@@ -125,7 +125,7 @@ def run_lpop(args: list[str]) -> bytes:
     elmt = lst.pop(0)
     STORE[key] = StoreEntry(value=lst, expiry_time=None)
 
-    return f'${len(elmt)}/r\n{elmt}\r\n'.encode()
+    return f'${len(elmt)}\r\n{elmt}\r\n'.encode()
 
 
 COMMANDS = {
