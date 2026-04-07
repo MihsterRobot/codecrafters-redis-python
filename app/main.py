@@ -1,5 +1,6 @@
 import socket  # noqa: F401
 import asyncio
+import inspect
 
 from . import resp as r
 from . import commands as c
@@ -27,6 +28,8 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
         if cmd_name in c.COMMANDS: 
             handler = c.COMMANDS[cmd_name]
             result = handler(args)
+            if inspect.iscoroutine(result):
+                result = await handler(args)
             writer.write(result)
 
 
