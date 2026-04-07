@@ -163,7 +163,6 @@ async def run_blpop(args: list[str]) -> bytes:
     key = args[0]
     entry = STORE.get(key)
     lst = entry.value if entry is not None else []
-    elmt = None
 
     if not lst:
         event = asyncio.Event()
@@ -183,8 +182,8 @@ async def run_blpop(args: list[str]) -> bytes:
             event_list.pop(0)  # Remove the handled event. 
             WAITERS[key] = event_list  # Update the events list and store it. 
             
-        elmt = lst.pop(0)
-        STORE[key] = StoreEntry(value=lst, expiry_time=None)
+    elmt = lst.pop(0)
+    STORE[key] = StoreEntry(value=lst, expiry_time=None)
 
     return f'*2\r\n{key}\r\n{elmt}\r\n'.encode()
 
