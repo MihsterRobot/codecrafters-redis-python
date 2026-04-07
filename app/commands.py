@@ -186,7 +186,7 @@ async def run_blpop(args: list[str]) -> bytes:
     elmt = lst.pop(0)
     STORE[key] = StoreEntry(value=lst, expiry_time=None)
 
-    return f'*2\r\n${len(key)}\r\n{key}\r\n{len(elmt)}\r\n{elmt}\r\n'.encode()
+    return f'*2\r\n${len(key)}\r\n{key}\r\n${len(elmt)}\r\n{elmt}\r\n'.encode()
 
 
 COMMANDS = {
