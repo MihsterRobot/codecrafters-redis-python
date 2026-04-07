@@ -1,7 +1,9 @@
 import time
+import asyncio
 from typing import NamedTuple
 
 STORE = {}
+WAITERS = {}
 
 
 class StoreEntry(NamedTuple): 
@@ -51,6 +53,10 @@ def run_rpush(args: list[str]) -> bytes:
 
     lst.extend(elements)
     STORE[key] = StoreEntry(value=lst, expiry_time=None)
+
+    event_list = WAITERS.get(key, [])
+    if event_list: 
+        event_list[0].set()
 
     return f':{len(lst)}\r\n'.encode()
 
@@ -124,21 +130,26 @@ def run_lpop(args: list[str]) -> bytes:
 
     if len(args) == 1:  # No size argument provided; pop the first index only.
         elmt = lst.pop(0)
+        STORE[key] = StoreEntry(value=lst, expiry_time=None)
         return f'${len(elmt)}\r\n{elmt}\r\n'.encode()
 
-    num_elmts_to_pop = None
-    num = int(args[1])
+    # if num > len(lst): 
+    #     num_elmts_to_pop = len(lst) 
+    # else: 
+    #     num_elmts_to_pop = num
 
-    if num > len(lst): 
-        num_elmts_to_pop = len(lst) - 1
-    else: 
-        num_elmts_to_pop = num
+    num = int(args[1])
+    num_elmts_to_pop = min(num, len(lst))  # Refactored version (lines 130–133). 
     
-    popped_elmts = []
-    for elmt in lst[0:num_elmts_to_pop]: 
-        popped_elmts.append(lst.pop(0))
+    # Refactored version (lines 142–144). 
+    popped_elmts = lst[:num_elmts_to_pop]
+    lst = lst[num_elmts_to_pop:]
 
     STORE[key] = StoreEntry(value=lst, expiry_time=None)
+
+    # popped_elmts = []
+    # for elmt in lst[0:num_elmts_to_pop]: 
+    #     popped_elmts.append(lst.pop(0))
 
     resp_lst = [f'*{len(popped_elmts)}\r\n']
     for elmt in popped_elmts:
@@ -146,6 +157,36 @@ def run_lpop(args: list[str]) -> bytes:
         resp_lst.append(f'{elmt}\r\n')
 
     return ''.join(resp_lst).encode()
+
+
+async def run_blpop(args: list[str]) -> bytes:
+    key = args[0]
+    entry = STORE.get(key)
+    lst = entry.value if entry is not None else []
+    elmt = None
+
+    if not lst:
+        event = asyncio.Event()
+        event_list = WAITERS.get(key, [])
+        event_list.append(event)
+        WAITERS[key] = event_list
+        
+        timeout = float(args[1])
+        timeout = None if timeout == 0 else timeout
+        try:
+            await asyncio.wait_for(event.wait(), timeout)
+        except asyncio.TimeoutError:
+            return b'*-1\r\n'
+    else:
+        event_list = WAITERS.get(key, [])
+        if event_list:
+            event_list.pop(0)  # Remove the handled event. 
+            WAITERS[key] = event_list  # Update the events list and store it. 
+            
+        elmt = lst.pop(0)
+        STORE[key] = StoreEntry(value=lst, expiry_time=None)
+
+    return f'*2\r\n{key}\r\n{elmt}\r\n'.encode()
 
 
 COMMANDS = {
@@ -158,4 +199,5 @@ COMMANDS = {
     'LPUSH': run_lpush,
     'LLEN': run_llen,
     'LPOP': run_lpop,
+    'BLPOP': run_blpop
 }
