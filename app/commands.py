@@ -174,6 +174,7 @@ async def run_blpop(args: list[str]) -> bytes:
         timeout = None if timeout == 0 else timeout
         try:
             await asyncio.wait_for(event.wait(), timeout)
+            lst = STORE[key].value
         except asyncio.TimeoutError:
             return b'*-1\r\n'
     else:
