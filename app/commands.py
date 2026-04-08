@@ -29,6 +29,8 @@ def run_type(args: list[str]) -> bytes:
 
     if isinstance(entry.value, str): 
         return f'+string\r\n'.encode()
+    
+    return b'+none\r\n'
 
 
 def run_set(args: list[str]) -> bytes:
