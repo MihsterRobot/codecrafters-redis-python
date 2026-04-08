@@ -228,7 +228,7 @@ def run_xadd(args: list[str]) -> bytes:
         # if seq_num == 0: 
         #     return b'-ERR The ID specified in XADD must be greater than 0-0\r\n'
         
-        seq_num = 0 if seq_num == '*' else seq_num
+        seq_num = 1 if seq_num == '*' else seq_num
         stream_id = f'{ms_time}-{seq_num}'
         stream = [(stream_id, fields)]
 
