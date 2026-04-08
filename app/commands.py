@@ -7,8 +7,9 @@ WAITERS = {}
 
 
 class StoreEntry(NamedTuple): 
-    value: str | list[str]
+    value: str | list[str] | list[tuple[str, dict[str, str]]]
     expiry_time: float | None
+    redis_type: str
 
 
 def run_ping(args: list[str]) -> bytes:
@@ -26,11 +27,8 @@ def run_type(args: list[str]) -> bytes:
     # If the key doesn't exist
     if not entry:
         return b'+none\r\n'
-
-    if isinstance(entry.value, str): 
-        return f'+string\r\n'.encode()
     
-    return b'+none\r\n'
+    return f'+{entry.redis_type}\r\n'.encode()
 
 
 def run_set(args: list[str]) -> bytes:
@@ -42,7 +40,7 @@ def run_set(args: list[str]) -> bytes:
     elif 'EX' in args: 
         expiry_time = time.time() + int(args[3])
 
-    STORE[key] = StoreEntry(value=args[1], expiry_time=expiry_time)
+    STORE[key] = StoreEntry(value=args[1], expiry_time=expiry_time, redis_type='string')
 
     return b'+OK\r\n'
 
@@ -66,7 +64,7 @@ def run_rpush(args: list[str]) -> bytes:
     lst = entry.value if entry is not None else []
 
     lst.extend(elements)
-    STORE[key] = StoreEntry(value=lst, expiry_time=None)
+    STORE[key] = StoreEntry(value=lst, expiry_time=None, redis_type='list')
 
     event_list = WAITERS.get(key, [])
     if event_list: 
@@ -82,7 +80,7 @@ def run_lpush(args: list[str]) -> bytes:
 
     # Reverse elements, prepend them to the existing list, and store the result. 
     lst = elements[::-1] + lst  
-    STORE[key] = StoreEntry(value=lst, expiry_time=None)
+    STORE[key] = StoreEntry(value=lst, expiry_time=None, redis_type='list')
 
     return f':{len(lst)}\r\n'.encode()
 
@@ -97,7 +95,7 @@ def run_lpop(args: list[str]) -> bytes:
 
     if len(args) == 1:  # No size argument provided; pop the first index only.
         elmt = lst.pop(0)
-        STORE[key] = StoreEntry(value=lst, expiry_time=None)
+        STORE[key] = StoreEntry(value=lst, expiry_time=None, redis_type='list')
         return f'${len(elmt)}\r\n{elmt}\r\n'.encode()
 
     # if num > len(lst): 
@@ -112,7 +110,7 @@ def run_lpop(args: list[str]) -> bytes:
     popped_elmts = lst[:num_elmts_to_pop]
     lst = lst[num_elmts_to_pop:]
 
-    STORE[key] = StoreEntry(value=lst, expiry_time=None)
+    STORE[key] = StoreEntry(value=lst, expiry_time=None, redis_type='list')
 
     # popped_elmts = []
     # for elmt in lst[0:num_elmts_to_pop]: 
@@ -151,7 +149,7 @@ async def run_blpop(args: list[str]) -> bytes:
             WAITERS[key] = event_list  # Update the events list and store it. 
             
     elmt = lst.pop(0)
-    STORE[key] = StoreEntry(value=lst, expiry_time=None)
+    STORE[key] = StoreEntry(value=lst, expiry_time=None, redis_type='list')
 
     return f'*2\r\n${len(key)}\r\n{key}\r\n${len(elmt)}\r\n{elmt}\r\n'.encode()
 
@@ -203,6 +201,30 @@ def run_llen(args: list[str]) -> bytes:
     return f':{len(lst)}\r\n'.encode()
 
 
+def run_xadd(args: list[str]) -> bytes: 
+    key = args[0]
+    stream_id = args[1]
+    kv_pairs = args[2:]
+    entry = STORE.get(key)
+    
+    keys = kv_pairs[0::2]
+    values = kv_pairs[1::2]
+
+    fields = {}
+    for i in range(len(keys)): 
+        fields[keys[i]] = values[i]
+
+    if not entry:
+        stream = [(stream_id, fields)]
+        STORE[key] = StoreEntry(value=stream, expiry_time=None, redis_type='stream')
+    else: 
+        stream = entry.value
+        stream.append((stream_id, fields))
+        STORE[key] = StoreEntry(value=stream, expiry_time=None, redis_type='stream')
+
+    return f'${len(stream_id)}\r\n{stream_id}\r\n'.encode()  
+
+
 COMMANDS = {
     'PING': run_ping,
     'ECHO': run_echo,
@@ -214,5 +236,6 @@ COMMANDS = {
     'LPOP': run_lpop,
     'BLPOP': run_blpop,
     'LRANGE': run_lrange,
-    'LLEN': run_llen
+    'LLEN': run_llen,
+    'XADD': run_xadd
 }
