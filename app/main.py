@@ -25,11 +25,14 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
             break
 
         cmd_name, args = r.parse_resp(request)
+
         if cmd_name in c.COMMANDS: 
             handler = c.COMMANDS[cmd_name]
             result = handler(args)
+            
             if inspect.iscoroutine(result):
                 result = await result
+
             writer.write(result)
 
 
