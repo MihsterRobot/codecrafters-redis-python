@@ -22,15 +22,13 @@ def run_echo(args: list[str]) -> bytes:
 def run_type(args: list[str]) -> bytes:
     key = args[0]
     entry = STORE.get(key)
-    lst = entry.value if entry is not None else []
 
-    if not lst: 
+    # If the key doesn't exist
+    if not entry:
         return b'+none\r\n'
 
-    typ = type(lst)
-
-    return f'+{typ}\r\n'.encode()
-    
+    if isinstance(entry.value, str): 
+        return f'+string\r\n'.encode()
 
 
 def run_set(args: list[str]) -> bytes:
