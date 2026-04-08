@@ -98,23 +98,23 @@ def run_lpop(args: list[str]) -> bytes:
         STORE[key] = StoreEntry(value=lst, expiry_time=None, redis_type='list')
         return f'${len(elmt)}\r\n{elmt}\r\n'.encode()
 
+    num = int(args[1])
+    num_elmts_to_pop = min(num, len(lst))  # Refactored version (below)
+
     # if num > len(lst): 
     #     num_elmts_to_pop = len(lst) 
     # else: 
     #     num_elmts_to_pop = num
-
-    num = int(args[1])
-    num_elmts_to_pop = min(num, len(lst))  # Refactored version (lines 130–133). 
     
-    # Refactored version (lines 142–144). 
+    # Refactored version (below)
     popped_elmts = lst[:num_elmts_to_pop]
     lst = lst[num_elmts_to_pop:]
-
-    STORE[key] = StoreEntry(value=lst, expiry_time=None, redis_type='list')
 
     # popped_elmts = []
     # for elmt in lst[0:num_elmts_to_pop]: 
     #     popped_elmts.append(lst.pop(0))
+
+    STORE[key] = StoreEntry(value=lst, expiry_time=None, redis_type='list')
 
     resp_lst = [f'*{len(popped_elmts)}\r\n']
     for elmt in popped_elmts:
@@ -206,13 +206,14 @@ def run_xadd(args: list[str]) -> bytes:
     stream_id = args[1]
     kv_pairs = args[2:]
     entry = STORE.get(key)
-    
+
     keys = kv_pairs[0::2]
     values = kv_pairs[1::2]
+    fields = dict(zip(keys, values))  # Refactored version (below)
 
-    fields = {}
-    for i in range(len(keys)): 
-        fields[keys[i]] = values[i]
+    # fields = {}
+    # for i in range(len(keys)): 
+    #     fields[keys[i]] = values[i]
 
     if not entry:
         stream = [(stream_id, fields)]
