@@ -243,8 +243,10 @@ def run_xadd(args: list[str]) -> bytes:
                 seq_num = last_stream_seq_num + 1
             elif ms_time != 0 and ms_time != last_stream_ms_time:
                 seq_num = 0
+        
+        assert isinstance(seq_num, int), "seq_num should be resolved from '*' by this point"
 
-        if ms_time < last_stream_ms_time or (ms_time == last_stream_ms_time and int(seq_num) <= last_stream_seq_num):
+        if ms_time < last_stream_ms_time or (ms_time == last_stream_ms_time and seq_num <= last_stream_seq_num):
             return b'-ERR The ID specified in XADD is equal or smaller than the target stream top item\r\n'
         
         stream = entry.value
