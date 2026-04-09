@@ -220,7 +220,7 @@ def run_xadd(args: list[str]) -> bytes:
     seq_num = None
 
     if stream_id == '*': 
-        curr_time_ms = time() * 1000
+        curr_time_ms = int(time() * 1000)
         ms_time = curr_time_ms
         seq_num = '*'
     else:
