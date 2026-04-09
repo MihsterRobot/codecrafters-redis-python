@@ -225,10 +225,7 @@ def run_xadd(args: list[str]) -> bytes:
 
     if not entry:
         if seq_num == '*': 
-            if ms_time == 0: 
-                seq_num = 1
-            else: 
-                seq_num = 0
+            seq_num = 1 if ms_time == 0 else 0
 
         stream_id = f'{ms_time}-{seq_num}'
         stream = [(stream_id, fields)]
