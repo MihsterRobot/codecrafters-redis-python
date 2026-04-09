@@ -6,7 +6,7 @@ from . import resp as r
 from . import commands as c
 
 
-async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
+async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
     # This coroutine is called automatically by the event loop each time a new
     # client connects. asyncio runs multiple instances of it concurrently,
     # one per connected client, without blocking the others.
@@ -29,14 +29,14 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
         if cmd_name in c.COMMANDS: 
             handler = c.COMMANDS[cmd_name]
             result = handler(args)
-            
+
             if inspect.iscoroutine(result):
                 result = await result
 
             writer.write(result)
 
 
-async def main():
+async def main() -> None:
     # Start a TCP server on localhost:6379 (Redis's default port).
     # handle_client is passed as a callback; the event loop calls it with a
     # (reader, writer) pair each time a new client connects.

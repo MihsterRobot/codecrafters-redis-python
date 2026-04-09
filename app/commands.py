@@ -228,10 +228,9 @@ def run_xadd(args: list[str]) -> bytes:
         # if seq_num == 0: 
         #     return b'-ERR The ID specified in XADD must be greater than 0-0\r\n'
         
-        seq_num = 1 if seq_num == '*' else seq_num
+        seq_num = 0 if seq_num == '*' else seq_num
         stream_id = f'{ms_time}-{seq_num}'
         stream = [(stream_id, fields)]
-
         STORE[key] = StoreEntry(value=stream, expiry_time=None, redis_type='stream')
     else:
         last_stream_entry = entry.value[-1]  
@@ -251,7 +250,6 @@ def run_xadd(args: list[str]) -> bytes:
         stream = entry.value
         stream_id = f'{ms_time}-{seq_num}'
         stream.append((stream_id, fields))
-
         STORE[key] = StoreEntry(value=stream, expiry_time=None, redis_type='stream')
 
     return f'${len(stream_id)}\r\n{stream_id}\r\n'.encode()  
@@ -269,5 +267,5 @@ COMMANDS = {
     'BLPOP': run_blpop,
     'LRANGE': run_lrange,
     'LLEN': run_llen,
-    'XADD': run_xadd
+    'XADD': run_xadd,
 }
