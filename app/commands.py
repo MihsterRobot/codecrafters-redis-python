@@ -215,6 +215,11 @@ def run_xadd(args: list[str]) -> bytes:
     # for i in range(len(keys)): 
     #     fields[keys[i]] = values[i]
 
+    if stream_id == '*': 
+        curr_time_ms = time.time() / 1000
+        ms_time = curr_time_ms
+        seq_num = 0
+
     stream_id_parts = stream_id.split('-')
     ms_time = int(stream_id_parts[0])
     seq_num = stream_id_parts[1] 
@@ -232,21 +237,21 @@ def run_xadd(args: list[str]) -> bytes:
         STORE[key] = StoreEntry(value=stream, expiry_time=None, redis_type='stream')
     else:
         last_stream_entry = entry.value[-1]  
-        last_stream_id_parts = last_stream_entry[0].split('-')
-        last_stream_ms_time = int(last_stream_id_parts[0])
-        last_stream_seq_num = int(last_stream_id_parts[1])
+        last_entry_id_parts = last_stream_entry[0].split('-')
+        last_entry_ms_time = int(last_entry_id_parts[0])
+        last_entry_seq_num = int(last_entry_id_parts[1])
 
         if seq_num == '*': 
             if ms_time == 0: 
                 seq_num = 1
-            elif ms_time == last_stream_ms_time: 
-                seq_num = last_stream_seq_num + 1
-            elif ms_time != 0 and ms_time != last_stream_ms_time:
+            elif ms_time == last_entry_ms_time: 
+                seq_num = last_entry_seq_num + 1
+            elif ms_time != 0 and ms_time != last_entry_ms_time:
                 seq_num = 0
         
         assert isinstance(seq_num, int), "seq_num should be resolved from '*' by this point"
 
-        if ms_time < last_stream_ms_time or (ms_time == last_stream_ms_time and seq_num <= last_stream_seq_num):
+        if ms_time < last_entry_ms_time or (ms_time == last_entry_ms_time and seq_num <= last_entry_seq_num):
             return b'-ERR The ID specified in XADD is equal or smaller than the target stream top item\r\n'
         
         stream = entry.value
