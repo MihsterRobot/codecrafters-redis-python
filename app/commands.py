@@ -218,12 +218,12 @@ def run_xadd(args: list[str]) -> bytes:
     if stream_id == '*': 
         curr_time_ms = time.time() / 1000
         ms_time = curr_time_ms
-        seq_num = 0
-
-    stream_id_parts = stream_id.split('-')
-    ms_time = int(stream_id_parts[0])
-    seq_num = stream_id_parts[1] 
-    seq_num = seq_num if seq_num == '*' else int(seq_num)
+        seq_num = '*'
+    else:
+        stream_id_parts = stream_id.split('-')
+        ms_time = int(stream_id_parts[0])
+        seq_num = stream_id_parts[1] 
+        seq_num = seq_num if seq_num == '*' else int(seq_num)
 
     if ms_time == 0 and seq_num == 0:  
         return b'-ERR The ID specified in XADD must be greater than 0-0\r\n'
