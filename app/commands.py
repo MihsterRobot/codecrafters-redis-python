@@ -224,11 +224,11 @@ def run_xadd(args: list[str]) -> bytes:
         return b'-ERR The ID specified in XADD must be greater than 0-0\r\n'
 
     if not entry:
-        # # The minimum valid ID Redis accepts is 0-1.
-        # if seq_num == 0: 
-        #     return b'-ERR The ID specified in XADD must be greater than 0-0\r\n'
-        
-        seq_num = 0 if seq_num == '*' else seq_num
+        if seq_num == '*' and ms_time == 0: 
+            seq_num = 1
+        else: 
+            seq_num = 0
+
         stream_id = f'{ms_time}-{seq_num}'
         stream = [(stream_id, fields)]
         STORE[key] = StoreEntry(value=stream, expiry_time=None, redis_type='stream')
@@ -243,6 +243,8 @@ def run_xadd(args: list[str]) -> bytes:
                 seq_num = 1
             elif ms_time == last_stream_ms_time: 
                 seq_num = last_stream_seq_num + 1
+            elif ms_time != 0 and ms_time != last_stream_ms_time:
+                seq_num = 0
 
         if ms_time < last_stream_ms_time or (ms_time == last_stream_ms_time and int(seq_num) <= last_stream_seq_num):
             return b'-ERR The ID specified in XADD is equal or smaller than the target stream top item\r\n'
