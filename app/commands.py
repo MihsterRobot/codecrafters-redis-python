@@ -1,5 +1,5 @@
-import time
 import asyncio
+from time import time
 from typing import NamedTuple
 
 STORE = {}
@@ -36,9 +36,9 @@ def run_set(args: list[str]) -> bytes:
     expiry_time = None
 
     if 'PX' in args: 
-        expiry_time = time.time() + (int(args[3]) / 1000)
+        expiry_time = time() + (int(args[3]) / 1000)
     elif 'EX' in args: 
-        expiry_time = time.time() + int(args[3])
+        expiry_time = time() + int(args[3])
 
     STORE[key] = StoreEntry(value=args[1], expiry_time=expiry_time, redis_type='string')
 
@@ -52,7 +52,7 @@ def run_get(args: list[str]) -> bytes:
     if entry is None: 
         return b'$-1\r\n'
     # If there's an expiry time and the current time exceeds it, the key is expired. 
-    elif entry.expiry_time is not None and time.time() > entry.expiry_time: 
+    elif entry.expiry_time is not None and time() > entry.expiry_time: 
         return b'$-1\r\n'
     
     return f'${len(entry.value)}\r\n{entry.value}\r\n'.encode()
@@ -220,7 +220,7 @@ def run_xadd(args: list[str]) -> bytes:
     seq_num = None
 
     if stream_id == '*': 
-        curr_time_ms = time.time() * 1000
+        curr_time_ms = time() * 1000
         ms_time = curr_time_ms
         seq_num = '*'
     else:
