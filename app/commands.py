@@ -307,9 +307,12 @@ def run_xrange(args: list[str]) -> bytes:
         kv_list = ent[1]
         ent_size = f'*{len(ent)}\r\n'
         stream_id = f'${len(stream_id)}\r\n{stream_id}\r\n'
-        
+        kv_list_size = f'*{len(kv_list)}\r\n'
+
         resp_entries.append(ent_size)
         resp_entries.append(stream_id)
+        resp_entries.append(kv_list_size)
+        
 
         for elmt in kv_list: 
             resp_elmt = f'${len(elmt)}\r\n{elmt}\r\n'
