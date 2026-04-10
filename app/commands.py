@@ -269,6 +269,24 @@ def run_xadd(args: list[str]) -> bytes:
     return f'${len(stream_id)}\r\n{stream_id}\r\n'.encode()
 
 
+def build_resp_array(args: list[tuple[str, list[str]]]) -> list[str]: 
+    resp_array = []
+
+    for stream_id, kv_list in args:  # Unpack tuple entry
+        resp_array.append('*2\r\n')
+        resp_array.append(f'${len(stream_id)}\r\n{stream_id}\r\n')
+        resp_array.append(f'*{len(kv_list)}\r\n')
+
+        for elmt in kv_list: 
+            resp_elmt = f'${len(elmt)}\r\n{elmt}\r\n'
+            resp_array.append(resp_elmt)
+
+    num_entries = f'*{len(args)}\r\n'
+    resp_array.insert(0, num_entries)
+    
+    return resp_array
+
+
 def run_xrange(args: list[str]) -> bytes:
     key = args[0]
     store_entry = STORE.get(key)
@@ -303,34 +321,36 @@ def run_xrange(args: list[str]) -> bytes:
                 kv_list.append(value)
             matches.append((entry[0], kv_list))  
         
-    num_entries = f'*{len(matches)}\r\n'
-    resp_entries = [num_entries]
+    resp_array = build_resp_array(matches)
 
-    # Unpack tuple entry
-    for stream_id, kv_list in matches:  
-        resp_entries.append('*2\r\n')
-        resp_entries.append(f'${len(stream_id)}\r\n{stream_id}\r\n')
-        resp_entries.append(f'*{len(kv_list)}\r\n')
-
-        for elmt in kv_list: 
-            resp_elmt = f'${len(elmt)}\r\n{elmt}\r\n'
-            resp_entries.append(resp_elmt)
-
-    return ''.join(resp_entries).encode()
+    return ''.join(resp_array).encode()
 
 
 def run_xread(args: list[str]) -> bytes:
-    key = args[0]
-    store_key = STORE.get(key)
-    print(args[0], args[1])
+    key = args[1]
+    store_entry = STORE.get(key)
+    
+    if store_entry is None:
+        return b'*0\r\n'
+    
+    stream = store_entry.value
+    target_id_ms_time, target_id_seq_num = parse_stream_id(args[2])
+    matches = []
 
+    for entry in stream: 
+        entry_id_ms_time, entry_id_seq_num = parse_stream_id(entry[0])
+        entry_fields = entry[1] 
 
+        if (entry_id_ms_time, entry_id_seq_num) > (target_id_ms_time, target_id_seq_num):
+            kv_list = []
+            for field_key, value in entry_fields.items():
+                kv_list.append(field_key)
+                kv_list.append(value)
+            matches.append((entry[0], kv_list))  
 
+    resp_array = build_resp_array(matches)
 
-    return b'' 
-
-
-
+    return ''.join(resp_array).encode()
 
 
 COMMANDS = {
