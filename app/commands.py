@@ -319,6 +319,20 @@ def run_xrange(args: list[str]) -> bytes:
     return ''.join(resp_entries).encode()
 
 
+def run_xread(args: list[str]) -> bytes:
+    key = args[0]
+    store_key = STORE.get(key)
+    print(args[0], args[1])
+
+
+
+
+    return b'' 
+
+
+
+
+
 COMMANDS = {
     'PING': run_ping,
     'ECHO': run_echo,
@@ -333,4 +347,5 @@ COMMANDS = {
     'LLEN': run_llen,
     'XADD': run_xadd,
     'XRANGE': run_xrange,
+    'XREAD': run_xread,
 }
