@@ -269,19 +269,19 @@ def run_xadd(args: list[str]) -> bytes:
     return f'${len(stream_id)}\r\n{stream_id}\r\n'.encode()
 
 
-def build_resp_array(args: list[tuple[str, list[str]]]) -> list[str]: 
-    resp_array = [f'*{len(args)}\r\n']
+def build_entries_array(args: list[tuple[str, list[str]]]) -> list[str]: 
+    entries_array = [f'*{len(args)}\r\n']
 
     for stream_id, kv_list in args:  # Unpack tuple entry
-        resp_array.append('*2\r\n')
-        resp_array.append(f'${len(stream_id)}\r\n{stream_id}\r\n')
-        resp_array.append(f'*{len(kv_list)}\r\n')
+        entries_array.append('*2\r\n')
+        entries_array.append(f'${len(stream_id)}\r\n{stream_id}\r\n')
+        entries_array.append(f'*{len(kv_list)}\r\n')
 
         for elmt in kv_list: 
             resp_elmt = f'${len(elmt)}\r\n{elmt}\r\n'
-            resp_array.append(resp_elmt)
+            entries_array.append(resp_elmt)
     
-    return resp_array
+    return entries_array
 
 
 def run_xrange(args: list[str]) -> bytes:
@@ -318,7 +318,7 @@ def run_xrange(args: list[str]) -> bytes:
                 kv_list.append(value)
             matches.append((entry[0], kv_list))  
         
-    resp_array = build_resp_array(matches)
+    resp_array = build_entries_array(matches)
 
     return ''.join(resp_array).encode()
 
@@ -345,11 +345,15 @@ def run_xread(args: list[str]) -> bytes:
                 kv_list.append(value)
             matches.append((entry[0], kv_list))  
 
-    resp_array = build_resp_array(matches)
-    resp_array.insert(0, f'${len(key)}\r\n{key}\r\n')
+    entries = build_entries_array(matches)
+    resp_array = [
+        '*1\r\n',           # Outer array; 1 stream
+        '*2\r\n',           # Each stream is a 2-element array
+        f'${len(key)}\r\n{key}\r\n',  # Stream key
+    ]
+    resp_array.extend(entries)    # RESP array (already includes its own array header)
 
     return ''.join(resp_array).encode()
-
 
 COMMANDS = {
     'PING': run_ping,
