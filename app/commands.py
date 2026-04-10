@@ -276,6 +276,7 @@ def run_xrange(args: list[str]) -> bytes:
     if store_entry is None:
         return b'*0\r\n'
 
+    # '-' as the start ID indicates the beginning of the stream; default to the minimum possible ID.
     if args[1] == '-': 
         start_id_ms_time, start_id_seq_num = 0, 0
     else: 
