@@ -1,3 +1,4 @@
+import sys
 import asyncio
 from time import time
 from typing import NamedTuple
@@ -201,11 +202,26 @@ def run_llen(args: list[str]) -> bytes:
     return f':{len(lst)}\r\n'.encode()
 
 
+def parse_stream_id(stream_id: str) -> tuple[int, int | str]:
+    if stream_id == '*':
+        return int(time() * 1000), '*'
+    
+    # No sequence number provided
+    if not '-' in stream_id:
+        stream_id = stream_id + '-0'
+
+    parts = stream_id.split('-')
+    ms_time = int(parts[0])
+    seq_num = parts[1] if parts[1] == '*' else int(parts[1])
+
+    return ms_time, seq_num
+
+
 def run_xadd(args: list[str]) -> bytes: 
     key = args[0]
+    entry = STORE.get(key)
     stream_id = args[1]
     kv_pairs = args[2:]
-    entry = STORE.get(key)
 
     keys = kv_pairs[0::2]
     values = kv_pairs[1::2]
@@ -215,19 +231,7 @@ def run_xadd(args: list[str]) -> bytes:
     # for i in range(len(keys)): 
     #     fields[keys[i]] = values[i]
 
-    stream_id_parts = None
-    ms_time = None
-    seq_num = None
-
-    if stream_id == '*': 
-        curr_time_ms = int(time() * 1000)
-        ms_time = curr_time_ms
-        seq_num = '*'
-    else:
-        stream_id_parts = stream_id.split('-')
-        ms_time = int(stream_id_parts[0])
-        seq_num = stream_id_parts[1] 
-        seq_num = seq_num if seq_num == '*' else int(seq_num)
+    ms_time, seq_num = parse_stream_id(stream_id)
 
     if ms_time == 0 and seq_num == 0:  
         return b'-ERR The ID specified in XADD must be greater than 0-0\r\n'
@@ -263,7 +267,53 @@ def run_xadd(args: list[str]) -> bytes:
         stream.append((stream_id, fields))
         STORE[key] = StoreEntry(value=stream, expiry_time=None, redis_type='stream')
 
-    return f'${len(stream_id)}\r\n{stream_id}\r\n'.encode()  
+    return f'${len(stream_id)}\r\n{stream_id}\r\n'.encode()
+
+
+def run_xrange(args: list[str]) -> bytes:
+    key = args[0]
+    entry = STORE.get(key)
+
+    # If start ID has no sequence number, default to 0; if end ID has no sequence number, default to max int.
+    start_id_ms_time, start_id_seq_num = parse_stream_id(args[1])
+    if not '-' in args[2]:
+        end_id_ms_time, end_id_seq_num = parse_stream_id(args[2])
+        end_id_seq_num = sys.maxsize
+    end_id_ms_time, end_id_seq_num = parse_stream_id(args[2])
+
+    stream = entry.value  
+    matches = []
+    ent_list = []
+
+    for ent in stream: 
+        ent_id_ms_time, ent_id_seq_num = parse_stream_id(ent[0])
+        ent_fields = ent[1]
+        
+        if ent_id_ms_time >= start_id_ms_time and ent_id_ms_time <= end_id_ms_time:
+            if ent_id_seq_num >= start_id_seq_num and ent_id_seq_num <= end_id_seq_num:
+                ent_list.append(ent[0]) # Append stream id
+                kv_list = []
+                for key, value in ent_fields.items():
+                    kv_list.append(key)
+                    kv_list.append(value)
+                ent_list.append(kv_list)
+                matches.append(ent_list)  # Append list to matches
+        
+    num_entries = f'*{len(matches)}\r\n'
+    resp_entries = [num_entries]
+    for ent in matches:
+        stream_id = ent[0]
+        kv_list = ent[1]
+        ent_size = f'*{len(ent)}\r\n'
+
+        resp_entries.append(ent_size)
+        id = f'${len(stream_id)}\r\n{stream_id}\r\n'
+
+        for elmt in kv_list: 
+            resp_elmt = f'${len(elmt)}\r\n{elmt}\r\n'
+            resp_entries.append(resp_elmt)
+
+    return ''.join(resp_entries).encode()
 
 
 COMMANDS = {
@@ -279,4 +329,5 @@ COMMANDS = {
     'LRANGE': run_lrange,
     'LLEN': run_llen,
     'XADD': run_xadd,
+    'XRANGE': run_xrange,
 }
