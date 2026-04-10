@@ -301,13 +301,15 @@ def run_xrange(args: list[str]) -> bytes:
         
     num_entries = f'*{len(matches)}\r\n'
     resp_entries = [num_entries]
+
     for ent in matches:
         stream_id = ent[0]
         kv_list = ent[1]
         ent_size = f'*{len(ent)}\r\n'
-
+        stream_id = f'${len(stream_id)}\r\n{stream_id}\r\n'
+        
         resp_entries.append(ent_size)
-        id = f'${len(stream_id)}\r\n{stream_id}\r\n'
+        resp_entries.append(stream_id)
 
         for elmt in kv_list: 
             resp_elmt = f'${len(elmt)}\r\n{elmt}\r\n'
