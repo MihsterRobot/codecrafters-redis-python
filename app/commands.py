@@ -346,7 +346,7 @@ def run_xread(args: list[str]) -> bytes:
             matches.append((entry[0], kv_list))  
 
     resp_array = build_resp_array(matches)
-    resp_array.insert(0, key)
+    resp_array.insert(0, f'${len(key)}\r\n{key}\r\n')
 
     return ''.join(resp_array).encode()
 
