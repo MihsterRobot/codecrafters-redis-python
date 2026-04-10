@@ -220,8 +220,8 @@ def run_xadd(args: list[str]) -> bytes:
     key = args[0]
     store_entry = STORE.get(key)
 
-    if store_entry is None:
-        return b'*0\r\n'
+    # if store_entry is None:
+    #     return b'*0\r\n'
 
     stream_id = args[1]
     kv_pairs = args[2:]
