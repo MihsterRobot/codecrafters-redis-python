@@ -277,10 +277,10 @@ def run_xrange(args: list[str]) -> bytes:
         return b'*0\r\n'
 
     if args[1] == '-': 
-        start_id_ms_time, start_id_seq_num = 0, 1
+        start_id_ms_time, start_id_seq_num = 0, 0
     else: 
         start_id_ms_time, start_id_seq_num = parse_stream_id(args[1])  # If start ID has no sequence number, default to 0.
-        
+
     end_id_ms_time, end_id_seq_num = parse_stream_id(args[2])  # If end ID has no sequence number, default to max int.
     if '-' not in args[2]:
         end_id_seq_num = sys.maxsize
