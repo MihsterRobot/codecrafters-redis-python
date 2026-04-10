@@ -270,18 +270,18 @@ def run_xadd(args: list[str]) -> bytes:
 
 
 def build_entries_array(args: list[tuple[str, list[str]]]) -> list[str]: 
-    entries_array = [f'*{len(args)}\r\n']
+    entries = [f'*{len(args)}\r\n']
 
     for stream_id, kv_list in args:  # Unpack tuple entry
-        entries_array.append('*2\r\n')
-        entries_array.append(f'${len(stream_id)}\r\n{stream_id}\r\n')
-        entries_array.append(f'*{len(kv_list)}\r\n')
+        entries.append('*2\r\n')
+        entries.append(f'${len(stream_id)}\r\n{stream_id}\r\n')
+        entries.append(f'*{len(kv_list)}\r\n')
 
         for elmt in kv_list: 
             resp_elmt = f'${len(elmt)}\r\n{elmt}\r\n'
-            entries_array.append(resp_elmt)
+            entries.append(resp_elmt)
     
-    return entries_array
+    return entries
 
 
 def run_xrange(args: list[str]) -> bytes:
