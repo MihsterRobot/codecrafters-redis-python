@@ -338,7 +338,7 @@ def run_xread(args: list[str]) -> bytes:
         entry_id_ms_time, entry_id_seq_num = parse_stream_id(entry[0])
         entry_fields = entry[1] 
 
-        if entry_id_ms_time >= target_id_ms_time and entry_id_seq_num >= target_id_seq_num:
+        if (entry_id_ms_time, entry_id_seq_num) > (target_id_ms_time, target_id_seq_num):
             kv_list = []
             for field_key, value in entry_fields.items():
                 kv_list.append(field_key)
