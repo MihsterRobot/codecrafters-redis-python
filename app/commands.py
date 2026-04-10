@@ -279,25 +279,26 @@ def run_xrange(args: list[str]) -> bytes:
     if not '-' in args[2]:
         end_id_ms_time, end_id_seq_num = parse_stream_id(args[2])
         end_id_seq_num = sys.maxsize
-    end_id_ms_time, end_id_seq_num = parse_stream_id(args[2])
+    else:
+        end_id_ms_time, end_id_seq_num = parse_stream_id(args[2])
 
     stream = entry.value  
     matches = []
-    ent_list = []
-
+    
     for ent in stream: 
         ent_id_ms_time, ent_id_seq_num = parse_stream_id(ent[0])
         ent_fields = ent[1]
+        ent_list = []
         
         if ent_id_ms_time >= start_id_ms_time and ent_id_ms_time <= end_id_ms_time:
             if ent_id_seq_num >= start_id_seq_num and ent_id_seq_num <= end_id_seq_num:
-                ent_list.append(ent[0]) # Append stream id
+                ent_list.append(ent[0])  # Append stream id
                 kv_list = []
-                for key, value in ent_fields.items():
-                    kv_list.append(key)
+                for field_key, value in ent_fields.items():
+                    kv_list.append(field_key)
                     kv_list.append(value)
                 ent_list.append(kv_list)
-                matches.append(ent_list)  # Append list to matches
+                matches.append(ent_list)  
         
     num_entries = f'*{len(matches)}\r\n'
     resp_entries = [num_entries]
@@ -312,7 +313,6 @@ def run_xrange(args: list[str]) -> bytes:
         resp_entries.append(ent_size)
         resp_entries.append(stream_id)
         resp_entries.append(kv_list_size)
-        
 
         for elmt in kv_list: 
             resp_elmt = f'${len(elmt)}\r\n{elmt}\r\n'
