@@ -235,7 +235,7 @@ def run_xadd(args: list[str]) -> bytes:
     if ms_time == 0 and seq_num == 0:  
         return b'-ERR The ID specified in XADD must be greater than 0-0\r\n'
 
-    if not store_entry:
+    if store_entry is None:
         if seq_num == '*': 
             seq_num = 1 if ms_time == 0 else 0
 
