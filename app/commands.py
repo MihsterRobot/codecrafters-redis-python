@@ -23,13 +23,13 @@ def run_echo(args: list[str]) -> bytes:
 
 def run_type(args: list[str]) -> bytes:
     key = args[0]
-    entry = STORE.get(key)
+    store_entry = STORE.get(key)
 
     # If the key doesn't exist
-    if not entry:
+    if store_entry is None:
         return b'+none\r\n'
     
-    return f'+{entry.redis_type}\r\n'.encode()
+    return f'+{store_entry.redis_type}\r\n'.encode()
 
 
 def run_set(args: list[str]) -> bytes:
@@ -48,21 +48,20 @@ def run_set(args: list[str]) -> bytes:
 
 def run_get(args: list[str]) -> bytes:
     key = args[0]
-    entry = STORE.get(key)
+    store_entry = STORE.get(key)
 
-    if entry is None: 
+    if store_entry is None: 
         return b'$-1\r\n'
-    # If there's an expiry time and the current time exceeds it, the key is expired. 
-    elif entry.expiry_time is not None and time() > entry.expiry_time: 
+    elif store_entry.expiry_time is not None and time() > store_entry.expiry_time:  # If there's an expiry time and the current time exceeds it, the key is expired. 
         return b'$-1\r\n'
     
-    return f'${len(entry.value)}\r\n{entry.value}\r\n'.encode()
+    return f'${len(store_entry.value)}\r\n{store_entry.value}\r\n'.encode()
 
 
 def run_rpush(args: list[str]) -> bytes: 
     key, elements = args[0], args[1:]
-    entry = STORE.get(key)
-    lst = entry.value if entry is not None else []
+    store_entry = STORE.get(key)
+    lst = store_entry.value if store_entry is not None else []
 
     lst.extend(elements)
     STORE[key] = StoreEntry(value=lst, expiry_time=None, redis_type='list')
@@ -76,8 +75,8 @@ def run_rpush(args: list[str]) -> bytes:
 
 def run_lpush(args: list[str]) -> bytes: 
     key, elements = args[0], args[1:]
-    entry = STORE.get(key)
-    lst = entry.value if entry is not None else []
+    store_entry = STORE.get(key)
+    lst = store_entry.value if store_entry is not None else []
 
     # Reverse elements, prepend them to the existing list, and store the result. 
     lst = elements[::-1] + lst  
@@ -88,8 +87,8 @@ def run_lpush(args: list[str]) -> bytes:
 
 def run_lpop(args: list[str]) -> bytes: 
     key = args[0]
-    entry = STORE.get(key)
-    lst = entry.value if entry is not None else []
+    store_entry = STORE.get(key)
+    lst = store_entry.value if store_entry is not None else []
 
     if not lst:  
         return b'$-1\r\n'
@@ -127,8 +126,8 @@ def run_lpop(args: list[str]) -> bytes:
 
 async def run_blpop(args: list[str]) -> bytes:
     key = args[0]
-    entry = STORE.get(key)
-    lst = entry.value if entry is not None else []
+    store_entry = STORE.get(key)
+    lst = store_entry.value if store_entry is not None else []
 
     if not lst:
         event = asyncio.Event()
@@ -157,13 +156,13 @@ async def run_blpop(args: list[str]) -> bytes:
 
 def run_lrange(args: list[str]) -> bytes:
     key = args[0]
-    entry = STORE.get(key)
+    store_entry = STORE.get(key)
 
     # Return an empty array if the key doesn't exist.
-    if entry is None:
+    if store_entry is None:
         return b'*0\r\n'  
     
-    lst = entry.value
+    lst = store_entry.value
     lst_size = len(lst)
 
     # Convert negative indexes to their positive equivalents using the list length as the offset.
@@ -193,8 +192,8 @@ def run_lrange(args: list[str]) -> bytes:
 
 def run_llen(args: list[str]) -> bytes:
     key = args[0]
-    entry = STORE.get(key)
-    lst = entry.value if entry is not None else []
+    store_entry = STORE.get(key)
+    lst = store_entry.value if store_entry is not None else []
 
     if not lst:
         return b':0\r\n'
@@ -219,7 +218,11 @@ def parse_stream_id(stream_id: str) -> tuple[int, int | str]:
 
 def run_xadd(args: list[str]) -> bytes: 
     key = args[0]
-    entry = STORE.get(key)
+    store_entry = STORE.get(key)
+
+    if store_entry is None:
+        return b'*0\r\n'
+
     stream_id = args[1]
     kv_pairs = args[2:]
 
@@ -236,7 +239,7 @@ def run_xadd(args: list[str]) -> bytes:
     if ms_time == 0 and seq_num == 0:  
         return b'-ERR The ID specified in XADD must be greater than 0-0\r\n'
 
-    if not entry:
+    if not store_entry:
         if seq_num == '*': 
             seq_num = 1 if ms_time == 0 else 0
 
@@ -244,7 +247,7 @@ def run_xadd(args: list[str]) -> bytes:
         stream = [(stream_id, fields)]
         STORE[key] = StoreEntry(value=stream, expiry_time=None, redis_type='stream')
     else:
-        last_stream_entry = entry.value[-1]  
+        last_stream_entry = store_entry.value[-1]  
         last_entry_id_parts = last_stream_entry[0].split('-')
         last_entry_ms_time = int(last_entry_id_parts[0])
         last_entry_seq_num = int(last_entry_id_parts[1])
@@ -262,7 +265,7 @@ def run_xadd(args: list[str]) -> bytes:
         if ms_time < last_entry_ms_time or (ms_time == last_entry_ms_time and seq_num <= last_entry_seq_num):
             return b'-ERR The ID specified in XADD is equal or smaller than the target stream top item\r\n'
         
-        stream = entry.value
+        stream = store_entry.value
         stream_id = f'{ms_time}-{seq_num}'
         stream.append((stream_id, fields))
         STORE[key] = StoreEntry(value=stream, expiry_time=None, redis_type='stream')
@@ -272,31 +275,29 @@ def run_xadd(args: list[str]) -> bytes:
 
 def run_xrange(args: list[str]) -> bytes:
     key = args[0]
-    entry = STORE.get(key)
+    store_entry = STORE.get(key)
+
+    if store_entry is None:
+        return b'*0\r\n'
 
     # If start ID has no sequence number, default to 0; if end ID has no sequence number, default to max int.
     start_id_ms_time, start_id_seq_num = parse_stream_id(args[1])
     end_id_ms_time, end_id_seq_num = parse_stream_id(args[2])
     if '-' not in args[2]:
         end_id_seq_num = sys.maxsize
-
-    assert isinstance(start_id_seq_num, int), "start_id_seq_num should be an int, not '*'"
-    assert isinstance(end_id_seq_num, int), "end_id_seq_num should be an int, not '*'"
     
-    stream = entry.value  
+    stream = store_entry.value  
     matches = []
-    
-    for ent in stream: 
-        ent_id_ms_time, ent_id_seq_num = parse_stream_id(ent[0])
-        ent_fields = ent[1] 
+    for entry in stream: 
+        entry_id_ms_time, entry_id_seq_num = parse_stream_id(entry[0])
+        entry_fields = entry[1] 
 
-        if ent_id_ms_time >= start_id_ms_time and ent_id_ms_time <= end_id_ms_time:
-            if ent_id_seq_num >= start_id_seq_num and ent_id_seq_num <= end_id_seq_num:
-                kv_list = []
-                for field_key, value in ent_fields.items():
-                    kv_list.append(field_key)
-                    kv_list.append(value)
-                matches.append((ent[0], kv_list))  
+        if (start_id_ms_time, start_id_seq_num) <= (entry_id_ms_time, entry_id_seq_num) <= (end_id_ms_time, end_id_seq_num):
+            kv_list = []
+            for field_key, value in entry_fields.items():
+                kv_list.append(field_key)
+                kv_list.append(value)
+            matches.append((entry[0], kv_list))  
         
     num_entries = f'*{len(matches)}\r\n'
     resp_entries = [num_entries]
