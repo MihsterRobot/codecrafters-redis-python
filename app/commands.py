@@ -284,11 +284,12 @@ def run_xrange(args: list[str]) -> bytes:
 
     stream = entry.value  
     matches = []
+    ent_list = []
     
     for ent in stream: 
         ent_id_ms_time, ent_id_seq_num = parse_stream_id(ent[0])
         ent_fields = ent[1]
-        ent_list = []
+        
         
         if ent_id_ms_time >= start_id_ms_time and ent_id_ms_time <= end_id_ms_time:
             if ent_id_seq_num >= start_id_seq_num and ent_id_seq_num <= end_id_seq_num:
