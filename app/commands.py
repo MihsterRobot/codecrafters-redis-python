@@ -207,7 +207,7 @@ def parse_stream_id(stream_id: str) -> tuple[int, int | str]:
         return int(time() * 1000), '*'
     
     # No sequence number provided
-    if not '-' in stream_id:
+    if '-' not in stream_id:
         stream_id = stream_id + '-0'
 
     parts = stream_id.split('-')
@@ -257,7 +257,7 @@ def run_xadd(args: list[str]) -> bytes:
             elif ms_time != 0 and ms_time != last_entry_ms_time:
                 seq_num = 0
         
-        assert isinstance(seq_num, int), "seq_num should be resolved from '*' by this point"
+        assert isinstance(seq_num, int), "seq_num should be an int, not '*'"
 
         if ms_time < last_entry_ms_time or (ms_time == last_entry_ms_time and seq_num <= last_entry_seq_num):
             return b'-ERR The ID specified in XADD is equal or smaller than the target stream top item\r\n'
@@ -276,44 +276,36 @@ def run_xrange(args: list[str]) -> bytes:
 
     # If start ID has no sequence number, default to 0; if end ID has no sequence number, default to max int.
     start_id_ms_time, start_id_seq_num = parse_stream_id(args[1])
-    if not '-' in args[2]:
-        end_id_ms_time, end_id_seq_num = parse_stream_id(args[2])
+    end_id_ms_time, end_id_seq_num = parse_stream_id(args[2])
+    if '-' not in args[2]:
         end_id_seq_num = sys.maxsize
-    else:
-        end_id_ms_time, end_id_seq_num = parse_stream_id(args[2])
 
+    assert isinstance(start_id_seq_num, int), "start_id_seq_num should be an int, not '*'"
+    assert isinstance(end_id_seq_num, int), "end_id_seq_num should be an int, not '*'"
+    
     stream = entry.value  
     matches = []
-    ent_list = []
     
     for ent in stream: 
         ent_id_ms_time, ent_id_seq_num = parse_stream_id(ent[0])
-        ent_fields = ent[1]
-        
-        
+        ent_fields = ent[1] 
+
         if ent_id_ms_time >= start_id_ms_time and ent_id_ms_time <= end_id_ms_time:
             if ent_id_seq_num >= start_id_seq_num and ent_id_seq_num <= end_id_seq_num:
-                ent_list.append(ent[0])  # Append stream id
                 kv_list = []
                 for field_key, value in ent_fields.items():
                     kv_list.append(field_key)
                     kv_list.append(value)
-                ent_list.append(kv_list)
-                matches.append(ent_list)  
+                matches.append((ent[0], kv_list))  
         
     num_entries = f'*{len(matches)}\r\n'
     resp_entries = [num_entries]
 
-    for ent in matches:
-        stream_id = ent[0]
-        kv_list = ent[1]
-        ent_size = f'*{len(ent)}\r\n'
-        stream_id = f'${len(stream_id)}\r\n{stream_id}\r\n'
-        kv_list_size = f'*{len(kv_list)}\r\n'
-
-        resp_entries.append(ent_size)
-        resp_entries.append(stream_id)
-        resp_entries.append(kv_list_size)
+    # Unpack tuple entry
+    for stream_id, kv_list in matches:  
+        resp_entries.append('*2\r\n')
+        resp_entries.append(f'${len(stream_id)}\r\n{stream_id}\r\n')
+        resp_entries.append(f'*{len(kv_list)}\r\n')
 
         for elmt in kv_list: 
             resp_elmt = f'${len(elmt)}\r\n{elmt}\r\n'
