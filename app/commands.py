@@ -270,7 +270,7 @@ def run_xadd(args: list[str]) -> bytes:
 
 
 def build_resp_array(args: list[tuple[str, list[str]]]) -> list[str]: 
-    resp_array = []
+    resp_array = [f'*{len(args)}\r\n']
 
     for stream_id, kv_list in args:  # Unpack tuple entry
         resp_array.append('*2\r\n')
@@ -280,9 +280,6 @@ def build_resp_array(args: list[tuple[str, list[str]]]) -> list[str]:
         for elmt in kv_list: 
             resp_elmt = f'${len(elmt)}\r\n{elmt}\r\n'
             resp_array.append(resp_elmt)
-
-    num_entries = f'*{len(args)}\r\n'
-    resp_array.insert(0, num_entries)
     
     return resp_array
 
