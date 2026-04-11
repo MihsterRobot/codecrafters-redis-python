@@ -343,11 +343,15 @@ def run_xread(args: list[str]) -> bytes:
         store_entry = STORE.get(key)
 
         if store_entry is None:
-            return b'*0\r\n'
+            resp_array.append('*-1\r\n')
+            continue
         
         stream = store_entry.value
         stream_id = stream_ids[i]
-        start_ms_time, start_seq_num = parse_stream_id(stream_id)  # XREAD is exclusive; entries with this ID are not included in the result.
+
+        # XREAD is exclusive; entries with this ID are not included in the result.
+        start_ms_time, start_seq_num = parse_stream_id(stream_id)
+
         matches = []
 
         for entry in stream: 
@@ -362,7 +366,7 @@ def run_xread(args: list[str]) -> bytes:
                 matches.append((entry[0], kv_list))
 
         entries = build_entries_array(matches)
-        
+
         resp_array.append('*2\r\n')  # Each stream is a 2-element array
         resp_array.append(f'${len(key)}\r\n{key}\r\n')  # Stream key
         resp_array.extend(entries)    # RESP array (already includes its own array header)
