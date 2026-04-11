@@ -219,7 +219,7 @@ def parse_stream_id(stream_id: str) -> tuple[int, int | str]:
 def run_xadd(args: list[str]) -> bytes: 
     key = args[0]
     store_entry = STORE.get(key)
-    print(WAITERS)  # Debug
+    print('WAITERS:', WAITERS)  # Debug
     stream_id = args[1]
     kv_pairs = args[2:]
     keys = kv_pairs[0::2]
