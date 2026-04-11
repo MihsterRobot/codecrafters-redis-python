@@ -362,6 +362,7 @@ def run_xread(args: list[str]) -> bytes:
                 matches.append((entry[0], kv_list))
 
         entries = build_entries_array(matches)
+        
         resp_array.append('*2\r\n')  # Each stream is a 2-element array
         resp_array.append(f'${len(key)}\r\n{key}\r\n')  # Stream key
         resp_array.extend(entries)    # RESP array (already includes its own array header)
