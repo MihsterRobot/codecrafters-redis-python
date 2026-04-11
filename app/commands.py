@@ -89,7 +89,7 @@ def run_lpop(args: list[str]) -> bytes:
     key = args[0]
     store_entry = STORE.get(key)
     lst = store_entry.value if store_entry is not None else []
-
+    
     if not lst:  
         return b'$-1\r\n'
 
@@ -116,12 +116,12 @@ def run_lpop(args: list[str]) -> bytes:
 
     STORE[key] = StoreEntry(value=lst, expiry_time=None, redis_type='list')
 
-    resp_lst = [f'*{len(popped_elmts)}\r\n']
+    resp_array = [f'*{len(popped_elmts)}\r\n']
     for elmt in popped_elmts:
-        resp_lst.append(f'${len(elmt)}\r\n')
-        resp_lst.append(f'{elmt}\r\n')
+        resp_array.append(f'${len(elmt)}\r\n')
+        resp_array.append(f'{elmt}\r\n')
 
-    return ''.join(resp_lst).encode()
+    return ''.join(resp_array).encode()
 
 
 async def run_blpop(args: list[str]) -> bytes:
@@ -180,14 +180,14 @@ def run_lrange(args: list[str]) -> bytes:
         return b'*0\r\n'  
 
     sliced = lst[start:stop+1]
-    resp_lst = [f'*{len(sliced)}\r\n']
+    resp_array = [f'*{len(sliced)}\r\n']
 
     for elmt in sliced:
-        resp_lst.append(f'${len(elmt)}\r\n')
-        resp_lst.append(f'{elmt}\r\n')
+        resp_array.append(f'${len(elmt)}\r\n')
+        resp_array.append(f'{elmt}\r\n')
     
     # Join the RESP parts into a single continuous bytes object before sending over the socket.
-    return ''.join(resp_lst).encode()
+    return ''.join(resp_array).encode()
 
 
 def run_llen(args: list[str]) -> bytes:
@@ -354,6 +354,7 @@ def run_xread(args: list[str]) -> bytes:
     resp_array.extend(entries)    # RESP array (already includes its own array header)
 
     return ''.join(resp_array).encode()
+
 
 COMMANDS = {
     'PING': run_ping,
