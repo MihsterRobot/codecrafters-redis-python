@@ -393,6 +393,8 @@ async def run_xread(args: list[str]) -> bytes:
                 WAITERS[key] = event_list  # Update the events list and store it.
 
         entries = build_entries_array(matches)
+        print('args:', args)  # Debug
+        print('matches:', matches)  # Debug
 
         resp_array.append('*2\r\n')  # Each stream is a 2-element array
         resp_array.append(f'${len(key)}\r\n{key}\r\n')  # Stream key
