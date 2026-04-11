@@ -343,15 +343,14 @@ def run_xread(args: list[str]) -> bytes:
         store_entry = STORE.get(key)
 
         if store_entry is None:
-            resp_array.append('*-1\r\n')
-            continue
+            return b'*0\r\n'
         
         stream = store_entry.value
         stream_id = stream_ids[i]
 
         # XREAD is exclusive; entries with this ID are not included in the result.
         start_ms_time, start_seq_num = parse_stream_id(stream_id)
-
+          
         matches = []
 
         for entry in stream: 
