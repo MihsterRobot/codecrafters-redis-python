@@ -327,12 +327,32 @@ def run_xrange(args: list[str]) -> bytes:
     return ''.join(resp_array).encode()
 
 
+def get_entry_matches(stream: list[tuple[str, dict[str, str]]], stream_id: str) -> list[tuple[str, list[str]]]:
+    # XREAD is exclusive; entries with this ID are not included in the result.
+    start_ms_time, start_seq_num = parse_stream_id(stream_id)
+
+    matches = []
+    for entry in stream: 
+        entry_id_ms_time, entry_id_seq_num = parse_stream_id(entry[0])
+        entry_fields = entry[1] 
+
+        if (entry_id_ms_time, entry_id_seq_num) > (start_ms_time, start_seq_num):
+            kv_list = []
+            for field_key, value in entry_fields.items():
+                kv_list.append(field_key)
+                kv_list.append(value)
+            matches.append((entry[0], kv_list))
+
+    return matches
+
+
 async def run_xread(args: list[str]) -> bytes:
     if 'BLOCK' in args:
         stream_args = args[3:]  # Skip 'BLOCK', timeout, and 'STREAMS'
         mid = len(stream_args) // 2
         keys = stream_args[:mid]
         stream_ids = stream_args[mid:]
+        timeout = float(args[2])
     else: 
         stream_args = args[1:]  # Skip 'STREAMS'
         mid = len(stream_args) // 2
@@ -347,44 +367,27 @@ async def run_xread(args: list[str]) -> bytes:
         if store_entry is None:
             return b'*0\r\n'
         
-        stream = store_entry.value
-        stream_id = stream_ids[i]
+        matches = get_entry_matches(store_entry.value, stream_ids[i])  # Parameters (stream, stream ID)
 
-        # XREAD is exclusive; entries with this ID are not included in the result.
-        start_ms_time, start_seq_num = parse_stream_id(stream_id)
-          
-        matches = []
-        for entry in stream: 
-            entry_id_ms_time, entry_id_seq_num = parse_stream_id(entry[0])
-            entry_fields = entry[1] 
-
-            if (entry_id_ms_time, entry_id_seq_num) > (start_ms_time, start_seq_num):
-                kv_list = []
-                for field_key, value in entry_fields.items():
-                    kv_list.append(field_key)
-                    kv_list.append(value)
-                matches.append((entry[0], kv_list))
+        if not matches: 
+            event = asyncio.Event()
+            event_list = WAITERS.get(key, [])
+            event_list.append(event)
+            WAITERS[key] = event_list
             
-            if not matches: 
-                event = asyncio.Event()
-                event_list = WAITERS.get(key, [])
-                event_list.append(event)
-                WAITERS[key] = event_list
-                
-                timeout = float(args[1])
-                timeout = None if timeout == 0 else timeout
-                try:
-                    await asyncio.wait_for(event.wait(), timeout)
-                    
-                except asyncio.TimeoutError:
-                    return b'*-1\r\n'
-        
-                event_list = WAITERS.get(key, [])
-                if event_list:
-                    event_list.pop(0)  # Remove the handled event. 
-                    WAITERS[key] = event_list  # Update the events list and store it.
-                     
-                return stream[0]
+            timeout = None if timeout == 0 else timeout
+            try:
+                await asyncio.wait_for(event.wait(), timeout)
+                # Re-fetch stream after one or more entries has been added. 
+                store_entry = STORE.get(key)
+                matches = get_entry_matches(store_entry.value, stream_ids[i])
+            except asyncio.TimeoutError:
+                return b'*-1\r\n'
+    
+            event_list = WAITERS.get(key, [])
+            if event_list:
+                event_list.pop(0)  # Remove the handled event. 
+                WAITERS[key] = event_list  # Update the events list and store it.
 
         entries = build_entries_array(matches)
 
