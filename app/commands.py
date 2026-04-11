@@ -381,6 +381,13 @@ async def run_xread(args: list[str]) -> bytes:
                 # Re-fetch stream after one or more entries has been added. 
                 store_entry = STORE.get(key)
                 matches = get_entry_matches(store_entry.value, stream_ids[i])
+                entries = build_entries_array(matches)
+
+                resp_array.append('*2\r\n')  # Each stream is a 2-element array
+                resp_array.append(f'${len(key)}\r\n{key}\r\n')  # Stream key
+                resp_array.extend(entries)    # RESP array (already includes its own array header)
+
+                return ''.join(resp_array).encode()
             except asyncio.TimeoutError:
                 return b'*-1\r\n'
     
