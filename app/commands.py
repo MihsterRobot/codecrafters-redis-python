@@ -339,14 +339,15 @@ def run_xread(args: list[str]) -> bytes:
 
     resp_array = [f'*{len(keys)}\r\n']  # 'keys' indicates the number of streams. 
     
-    for key in keys: 
+    for i, key in enumerate(keys): 
         store_entry = STORE.get(key)
 
         if store_entry is None:
             return b'*0\r\n'
         
         stream = store_entry.value
-        start_ms_time, start_seq_num = parse_stream_id(args[2])  # XREAD is exclusive; entries with this ID are not included in the result.
+        stream_id = stream_ids[i]
+        start_ms_time, start_seq_num = parse_stream_id(stream_id)  # XREAD is exclusive; entries with this ID are not included in the result.
         matches = []
 
         for entry in stream: 
