@@ -328,24 +328,16 @@ def run_xrange(args: list[str]) -> bytes:
 
 
 async def run_xread(args: list[str]) -> bytes:
-    if 'BLOCK' in args: 
-        timeout = args[1]
-
-    
-
-
-    # Refactored version (below)
-    stream_args = args[1:]  # Skip 'STREAMS'
-    mid = len(stream_args) // 2
-    keys = stream_args[:mid]
-    stream_ids = stream_args[mid:]
-
-    # keys, stream_ids = [], []
-    # for i in range(1, len(args)):
-    #     if i <= (len(args)) // 2 : 
-    #         keys.append(args[i])
-    #         continue
-    #     stream_ids.append(args[i])
+    if 'BLOCK' in args:
+        stream_args = args[3:]  # Skip 'BLOCK', timeout, and 'STREAMS'
+        mid = len(stream_args) // 2
+        keys = stream_args[:mid]
+        stream_ids = stream_args[mid:]
+    else: 
+        stream_args = args[1:]  # Skip 'STREAMS'
+        mid = len(stream_args) // 2
+        keys = stream_args[:mid]
+        stream_ids = stream_args[mid:]
 
     resp_array = [f'*{len(keys)}\r\n']  # 'keys' indicates the number of streams. 
     
@@ -372,7 +364,8 @@ async def run_xread(args: list[str]) -> bytes:
                     kv_list.append(field_key)
                     kv_list.append(value)
                 matches.append((entry[0], kv_list))
-            else:
+            
+            if not matches: 
                 event = asyncio.Event()
                 event_list = WAITERS.get(key, [])
                 event_list.append(event)
@@ -382,14 +375,16 @@ async def run_xread(args: list[str]) -> bytes:
                 timeout = None if timeout == 0 else timeout
                 try:
                     await asyncio.wait_for(event.wait(), timeout)
-                    lst = STORE[key].value
+                    
                 except asyncio.TimeoutError:
                     return b'*-1\r\n'
         
                 event_list = WAITERS.get(key, [])
                 if event_list:
                     event_list.pop(0)  # Remove the handled event. 
-                    WAITERS[key] = event_list  # Update the events list and store it. 
+                    WAITERS[key] = event_list  # Update the events list and store it.
+                     
+                return stream[0]
 
         entries = build_entries_array(matches)
 
