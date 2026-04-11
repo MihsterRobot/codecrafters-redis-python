@@ -324,34 +324,46 @@ def run_xrange(args: list[str]) -> bytes:
 
 
 def run_xread(args: list[str]) -> bytes:
-    key = args[1]
-    store_entry = STORE.get(key)
+    # Refactored version (below)
+    stream_args = args[1:]  # Skip 'STREAMS'
+    mid = len(stream_args) // 2
+    keys = stream_args[:mid]
+    stream_ids = stream_args[mid:]
+
+    # keys, stream_ids = [], []
+    # for i in range(1, len(args)):
+    #     if i <= (len(args)) // 2 : 
+    #         keys.append(args[i])
+    #         continue
+    #     stream_ids.append(args[i])
+
+    resp_array = [f'*{len(keys)}\r\n']  # 'keys' indicates the number of streams. 
     
-    if store_entry is None:
-        return b'*0\r\n'
-    
-    stream = store_entry.value
-    target_id_ms_time, target_id_seq_num = parse_stream_id(args[2])
-    matches = []
+    for key in keys: 
+        store_entry = STORE.get(key)
 
-    for entry in stream: 
-        entry_id_ms_time, entry_id_seq_num = parse_stream_id(entry[0])
-        entry_fields = entry[1] 
+        if store_entry is None:
+            return b'*0\r\n'
+        
+        stream = store_entry.value
+        start_ms_time, start_seq_num = parse_stream_id(args[2])  # XREAD is exclusive; entries with this ID are not included in the result.
+        matches = []
 
-        if (entry_id_ms_time, entry_id_seq_num) > (target_id_ms_time, target_id_seq_num):
-            kv_list = []
-            for field_key, value in entry_fields.items():
-                kv_list.append(field_key)
-                kv_list.append(value)
-            matches.append((entry[0], kv_list))  
+        for entry in stream: 
+            entry_id_ms_time, entry_id_seq_num = parse_stream_id(entry[0])
+            entry_fields = entry[1] 
 
-    entries = build_entries_array(matches)
-    resp_array = [
-        '*1\r\n',           # Outer array; 1 stream
-        '*2\r\n',           # Each stream is a 2-element array
-        f'${len(key)}\r\n{key}\r\n',  # Stream key
-    ]
-    resp_array.extend(entries)    # RESP array (already includes its own array header)
+            if (entry_id_ms_time, entry_id_seq_num) > (start_ms_time, start_seq_num):
+                kv_list = []
+                for field_key, value in entry_fields.items():
+                    kv_list.append(field_key)
+                    kv_list.append(value)
+                matches.append((entry[0], kv_list))
+
+        entries = build_entries_array(matches)
+        resp_array.append('*2\r\n')  # Each stream is a 2-element array
+        resp_array.append(f'${len(key)}\r\n{key}\r\n')  # Stream key
+        resp_array.extend(entries)    # RESP array (already includes its own array header)
 
     return ''.join(resp_array).encode()
 
