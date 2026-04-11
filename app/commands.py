@@ -347,6 +347,7 @@ def get_entry_matches(stream: list[tuple[str, dict[str, str]]], stream_id: str) 
 
 
 async def run_xread(args: list[str]) -> bytes:
+    timeout = None
     if 'BLOCK' in args:
         stream_args = args[3:]  # Skip 'BLOCK', timeout, and 'STREAMS'
         mid = len(stream_args) // 2
@@ -369,7 +370,7 @@ async def run_xread(args: list[str]) -> bytes:
         
         matches = get_entry_matches(store_entry.value, stream_ids[i])  # Parameters (stream, stream ID)
 
-        if not matches: 
+        if 'BLOCK' in args and not matches: 
             event = asyncio.Event()
             event_list = WAITERS.get(key, [])
             event_list.append(event)
@@ -381,13 +382,6 @@ async def run_xread(args: list[str]) -> bytes:
                 # Re-fetch stream after one or more entries has been added. 
                 store_entry = STORE.get(key)
                 matches = get_entry_matches(store_entry.value, stream_ids[i])
-                entries = build_entries_array(matches)
-
-                resp_array.append('*2\r\n')  # Each stream is a 2-element array
-                resp_array.append(f'${len(key)}\r\n{key}\r\n')  # Stream key
-                resp_array.extend(entries)    # RESP array (already includes its own array header)
-
-                return ''.join(resp_array).encode()
             except asyncio.TimeoutError:
                 return b'*-1\r\n'
     
