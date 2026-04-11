@@ -267,7 +267,8 @@ def run_xadd(args: list[str]) -> bytes:
         STORE[key] = StoreEntry(value=stream, expiry_time=None, redis_type='stream')
 
         event_list = WAITERS.get(key, [])  # Notify `XRANGE` that an entry has been added.
-        if event_list: 
+        if event_list:
+            print('if event_list executed')
             event_list[0].set()  # Index 0 contains the longest-waiting client request. 
 
     return f'${len(stream_id)}\r\n{stream_id}\r\n'.encode()
