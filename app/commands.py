@@ -266,6 +266,10 @@ def run_xadd(args: list[str]) -> bytes:
         stream.append((stream_id, fields))
         STORE[key] = StoreEntry(value=stream, expiry_time=None, redis_type='stream')
 
+        event_list = WAITERS.get(key, [])  # Notify `XRANGE` that an entry has been added.
+        if event_list: 
+            event_list[0].set()  # Index 0 contains the longest-waiting client request. 
+
     return f'${len(stream_id)}\r\n{stream_id}\r\n'.encode()
 
 
@@ -323,7 +327,13 @@ def run_xrange(args: list[str]) -> bytes:
     return ''.join(resp_array).encode()
 
 
-def run_xread(args: list[str]) -> bytes:
+async def run_xread(args: list[str]) -> bytes:
+    if 'BLOCK' in args: 
+        timeout = args[1]
+
+    
+
+
     # Refactored version (below)
     stream_args = args[1:]  # Skip 'STREAMS'
     mid = len(stream_args) // 2
@@ -352,7 +362,6 @@ def run_xread(args: list[str]) -> bytes:
         start_ms_time, start_seq_num = parse_stream_id(stream_id)
           
         matches = []
-
         for entry in stream: 
             entry_id_ms_time, entry_id_seq_num = parse_stream_id(entry[0])
             entry_fields = entry[1] 
@@ -363,6 +372,24 @@ def run_xread(args: list[str]) -> bytes:
                     kv_list.append(field_key)
                     kv_list.append(value)
                 matches.append((entry[0], kv_list))
+            else:
+                event = asyncio.Event()
+                event_list = WAITERS.get(key, [])
+                event_list.append(event)
+                WAITERS[key] = event_list
+                
+                timeout = float(args[1])
+                timeout = None if timeout == 0 else timeout
+                try:
+                    await asyncio.wait_for(event.wait(), timeout)
+                    lst = STORE[key].value
+                except asyncio.TimeoutError:
+                    return b'*-1\r\n'
+        
+                event_list = WAITERS.get(key, [])
+                if event_list:
+                    event_list.pop(0)  # Remove the handled event. 
+                    WAITERS[key] = event_list  # Update the events list and store it. 
 
         entries = build_entries_array(matches)
 
