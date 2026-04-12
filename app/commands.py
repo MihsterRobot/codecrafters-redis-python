@@ -219,9 +219,6 @@ def parse_stream_id(stream_id: str) -> tuple[int, int | str]:
 
 
 def run_xadd(args: list[str]) -> bytes: 
-    key = args[0]
-    store_entry = STORE.get(key)
-    # print('WAITERS:', WAITERS)  # Debug
     stream_id = args[1]
     kv_pairs = args[2:]
     keys = kv_pairs[0::2]
@@ -232,10 +229,15 @@ def run_xadd(args: list[str]) -> bytes:
     # for i in range(len(keys)): 
     #     fields[keys[i]] = values[i]
 
+    # print('WAITERS —', WAITERS)  # Debug
+
     ms_time, seq_num = parse_stream_id(stream_id)
 
     if ms_time == 0 and seq_num == 0:  
         return b'-ERR The ID specified in XADD must be greater than 0-0\r\n'
+    
+    key = args[0]
+    store_entry = STORE.get(key)
 
     if store_entry is None:
         if seq_num == '*': 
@@ -287,7 +289,7 @@ def build_entries_array(args: list[tuple[str, list[str]]]) -> list[str]:
         for elmt in kv_list: 
             resp_elmt = f'${len(elmt)}\r\n{elmt}\r\n'
             entries.append(resp_elmt)
-    
+
     return entries
 
 
