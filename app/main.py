@@ -35,6 +35,7 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
                 result = await result
 
             writer.write(result)
+            await writer.drain()
 
 
 async def main() -> None:

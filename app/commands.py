@@ -384,12 +384,15 @@ async def run_xread(args: list[str]) -> bytes:
             
             timeout = None if timeout == 0 else timeout
             try:
-                await asyncio.wait_for(event.wait(), timeout) 
-                store_entry = STORE.get(key)  # Re-fetch the stream after one or more entries has been added. 
-                matches = get_entry_matches(store_entry.value, stream_ids[i])
+                await asyncio.wait_for(event.wait(), timeout)
 
+                store_entry = STORE.get(key)  # Re-fetch the stream after one or more entries has been added.
+                if store_entry is None:
+                    return b'*0\r\n'
+                
+                matches = get_entry_matches(store_entry.value, stream_ids[i])
                 entries = build_entries_array(matches)
-        
+                
                 resp_array.append('*2\r\n')  # Each stream is a 2-element array
                 resp_array.append(f'${len(key)}\r\n{key}\r\n')  # Stream key
                 resp_array.extend(entries)    # RESP array (already includes its own array header)
@@ -402,11 +405,8 @@ async def run_xread(args: list[str]) -> bytes:
                 return ''.join(resp_array).encode()
             except asyncio.TimeoutError:
                 return b'*-1\r\n'
-    
-            
 
         entries = build_entries_array(matches)
-        
         resp_array.append('*2\r\n')  # Each stream is a 2-element array
         resp_array.append(f'${len(key)}\r\n{key}\r\n')  # Stream key
         resp_array.extend(entries)    # RESP array (already includes its own array header)
