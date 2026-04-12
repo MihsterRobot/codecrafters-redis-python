@@ -384,9 +384,8 @@ async def run_xread(args: list[str]) -> bytes:
             
             timeout = None if timeout == 0 else timeout
             try:
-                await asyncio.wait_for(event.wait(), timeout)
-                # Re-fetch stream after one or more entries has been added. 
-                store_entry = STORE.get(key)
+                await asyncio.wait_for(event.wait(), timeout) 
+                store_entry = STORE.get(key)  # Re-fetch the stream after one or more entries has been added. 
                 matches = get_entry_matches(store_entry.value, stream_ids[i])
             except asyncio.TimeoutError:
                 return b'*-1\r\n'
