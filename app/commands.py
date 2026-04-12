@@ -375,36 +375,43 @@ async def run_xread(args: list[str]) -> bytes:
         # print('args:', args)  # Debug
         # print('matches:', matches)  # Debug
 
-        if 'block' in args and not matches: 
-            event = asyncio.Event()
-            event_list = WAITERS.get(key, [])
-            event_list.append(event)
-            WAITERS[key] = event_list
-            # print('xread event stored', WAITERS)  # Debug
-            
-            timeout = None if timeout == 0 else timeout
-            try:
-                await asyncio.wait_for(event.wait(), timeout)
+        if 'block' in args:
+            if not matches: 
+                event = asyncio.Event()
+                event_list = WAITERS.get(key, [])
+                event_list.append(event)
+                WAITERS[key] = event_list
+                # print('xread event stored', WAITERS)  # Debug
+                
+                timeout = None if timeout == 0 else timeout
+                try:
+                    await asyncio.wait_for(event.wait(), timeout)
 
-                store_entry = STORE.get(key)  # Re-fetch the stream after one or more entries has been added.
-                if store_entry is None:
-                    return b'*0\r\n'
-                
-                matches = get_entry_matches(store_entry.value, stream_ids[i])
+                    store_entry = STORE.get(key)  # Re-fetch the stream after one or more entries has been added.
+                    if store_entry is None:
+                        return b'*0\r\n'
+                    
+                    matches = get_entry_matches(store_entry.value, stream_ids[i])
+                    entries = build_entries_array(matches)
+                    
+                    resp_array.append('*2\r\n')  # Each stream is a 2-element array
+                    resp_array.append(f'${len(key)}\r\n{key}\r\n')  # Stream key
+                    resp_array.extend(entries)    # RESP array (already includes its own array header)
+
+                    event_list = WAITERS.get(key, [])
+                    if event_list:
+                        event_list.pop(0)  # Remove the handled event. 
+                        WAITERS[key] = event_list  # Update the events list and store it.
+
+                    return ''.join(resp_array).encode()
+                except asyncio.TimeoutError:
+                    return b'*-1\r\n'
+            else:
                 entries = build_entries_array(matches)
-                
                 resp_array.append('*2\r\n')  # Each stream is a 2-element array
                 resp_array.append(f'${len(key)}\r\n{key}\r\n')  # Stream key
                 resp_array.extend(entries)    # RESP array (already includes its own array header)
-
-                event_list = WAITERS.get(key, [])
-                if event_list:
-                    event_list.pop(0)  # Remove the handled event. 
-                    WAITERS[key] = event_list  # Update the events list and store it.
-
                 return ''.join(resp_array).encode()
-            except asyncio.TimeoutError:
-                return b'*-1\r\n'
 
         entries = build_entries_array(matches)
         resp_array.append('*2\r\n')  # Each stream is a 2-element array
