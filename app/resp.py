@@ -7,7 +7,7 @@ def parse_resp(data: bytes) -> tuple[str, list[str]]:
 
     stop = num_elements * 2 + 1
     cmd_parts = []
-    for i in range(2, stop, 2):
+    for i in range(2, stop, 2):  # Converting all args to uppercase incorrectly returns array args in uppercase.
         # Decode each token and convert to uppercase for case-insensitive command handling.
         cmd_parts.append(tokens[i].decode())
 
