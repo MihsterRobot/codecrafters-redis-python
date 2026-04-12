@@ -387,13 +387,23 @@ async def run_xread(args: list[str]) -> bytes:
                 await asyncio.wait_for(event.wait(), timeout) 
                 store_entry = STORE.get(key)  # Re-fetch the stream after one or more entries has been added. 
                 matches = get_entry_matches(store_entry.value, stream_ids[i])
+
+                entries = build_entries_array(matches)
+        
+                resp_array.append('*2\r\n')  # Each stream is a 2-element array
+                resp_array.append(f'${len(key)}\r\n{key}\r\n')  # Stream key
+                resp_array.extend(entries)    # RESP array (already includes its own array header)
+
+                event_list = WAITERS.get(key, [])
+                if event_list:
+                    event_list.pop(0)  # Remove the handled event. 
+                    WAITERS[key] = event_list  # Update the events list and store it.
+
+                return ''.join(resp_array).encode()
             except asyncio.TimeoutError:
                 return b'*-1\r\n'
     
-            event_list = WAITERS.get(key, [])
-            if event_list:
-                event_list.pop(0)  # Remove the handled event. 
-                WAITERS[key] = event_list  # Update the events list and store it.
+            
 
         entries = build_entries_array(matches)
         
