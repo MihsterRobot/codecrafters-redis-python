@@ -351,7 +351,7 @@ def get_entry_matches(stream: list[tuple[str, dict[str, str]]], stream_id: str) 
 
 async def run_xread(args: list[str]) -> bytes:
     timeout = None
-    if 'BLOCK' in args:
+    if 'block' in args:
         stream_args = args[3:]  # Skip 'BLOCK', timeout, and 'STREAMS'
         mid = len(stream_args) // 2
         keys = stream_args[:mid]
@@ -375,7 +375,7 @@ async def run_xread(args: list[str]) -> bytes:
         # print('args:', args)  # Debug
         # print('matches:', matches)  # Debug
 
-        if 'BLOCK' in args and not matches: 
+        if 'block' in args and not matches: 
             event = asyncio.Event()
             event_list = WAITERS.get(key, [])
             event_list.append(event)
