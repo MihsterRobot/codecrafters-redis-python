@@ -229,8 +229,6 @@ def run_xadd(args: list[str]) -> bytes:
     # for i in range(len(keys)): 
     #     fields[keys[i]] = values[i]
 
-    # print('WAITERS:', WAITERS)  # Debug
-
     ms_time, seq_num = parse_stream_id(stream_id)
 
     if ms_time == 0 and seq_num == 0:  
@@ -272,7 +270,6 @@ def run_xadd(args: list[str]) -> bytes:
 
     event_list = WAITERS.get(key, [])  # Notify `XRANGE` that an entry has been added.
     if event_list:
-        # print('if event_list executed')  # Debug
         event_list[0].set()  # Index 0 contains the longest-waiting client request. 
 
     return f'${len(stream_id)}\r\n{stream_id}\r\n'.encode()
@@ -351,6 +348,13 @@ def get_entry_matches(stream: list[tuple[str, dict[str, str]]], stream_id: str) 
     return matches
 
 
+def build_stream_response(resp_array: list[str], key: str, matches: list[tuple[str, list[str]]]) -> None:
+    entries = build_entries_array(matches)
+    resp_array.append('*2\r\n')  # Each stream is a 2-element array
+    resp_array.append(f'${len(key)}\r\n{key}\r\n')  # Stream key
+    resp_array.extend(entries)  # RESP array (already includes its own array header)
+
+
 async def run_xread(args: list[str]) -> bytes:
     timeout = None
     if 'block' in args:
@@ -358,15 +362,15 @@ async def run_xread(args: list[str]) -> bytes:
         mid = len(stream_args) // 2
         keys = stream_args[:mid]
         stream_ids = stream_args[mid:]
-        timeout = float(args[1]) // 1000
+        timeout = float(args[1]) // 1000  # Convert seconds to milliseconds
     else: 
         stream_args = args[1:]  # Skip 'STREAMS'
         mid = len(stream_args) // 2
         keys = stream_args[:mid]
         stream_ids = stream_args[mid:]
 
-    resp_array = [f'*{len(keys)}\r\n']  # 'keys' indicates the number of streams. 
-    
+    resp_array = [f'*{len(keys)}\r\n']  # 'keys' indicates the number of streams.
+
     for i, key in enumerate(keys): 
         store_entry = STORE.get(key)
 
@@ -374,8 +378,6 @@ async def run_xread(args: list[str]) -> bytes:
             return b'*0\r\n'
         
         matches = get_entry_matches(store_entry.value, stream_ids[i])  # Parameters (stream, stream ID)
-        # print('args:', args)  # Debug
-        # print('matches:', matches)  # Debug
 
         if 'block' in args:
             if not matches: 
@@ -383,7 +385,6 @@ async def run_xread(args: list[str]) -> bytes:
                 event_list = WAITERS.get(key, [])
                 event_list.append(event)
                 WAITERS[key] = event_list
-                # print('xread event stored', WAITERS)  # Debug
                 
                 timeout = None if timeout == 0 else timeout
                 try:
@@ -394,34 +395,22 @@ async def run_xread(args: list[str]) -> bytes:
                         return b'*0\r\n'
                     
                     matches = get_entry_matches(store_entry.value, stream_ids[i])
-                    entries = build_entries_array(matches)
+                    build_stream_response(resp_array, key, matches)
                     
-                    resp_array.append('*2\r\n')  # Each stream is a 2-element array
-                    resp_array.append(f'${len(key)}\r\n{key}\r\n')  # Stream key
-                    resp_array.extend(entries)    # RESP array (already includes its own array header)
-
                     event_list = WAITERS.get(key, [])
                     if event_list:
                         event_list.pop(0)  # Remove the handled event. 
                         WAITERS[key] = event_list  # Update the events list and store it.
-                    print('if block and not matches return path:')  # Debug
+
                     return ''.join(resp_array).encode()
                 except asyncio.TimeoutError:
                     return b'*-1\r\n'
             else:
-                entries = build_entries_array(matches)
-                resp_array.append('*2\r\n')  # Each stream is a 2-element array
-                resp_array.append(f'${len(key)}\r\n{key}\r\n')  # Stream key
-                resp_array.extend(entries)    # RESP array (already includes its own array header)
-                print('if block and matches return path')  # Debug
+                build_stream_response(resp_array, key, matches)
                 return ''.join(resp_array).encode()
 
-        entries = build_entries_array(matches)
-        resp_array.append('*2\r\n')  # Each stream is a 2-element array
-        resp_array.append(f'${len(key)}\r\n{key}\r\n')  # Stream key
-        resp_array.extend(entries)    # RESP array (already includes its own array header)
+        build_stream_response(resp_array, key, matches)
 
-    print('no block in command return path')  # Debug
     return ''.join(resp_array).encode()
 
 
