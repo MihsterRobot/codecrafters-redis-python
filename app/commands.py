@@ -221,7 +221,7 @@ def parse_stream_id(stream_id: str) -> tuple[int, int | str]:
 def run_xadd(args: list[str]) -> bytes: 
     key = args[0]
     store_entry = STORE.get(key)
-    print('WAITERS:', WAITERS)  # Debug
+    # print('WAITERS:', WAITERS)  # Debug
     stream_id = args[1]
     kv_pairs = args[2:]
     keys = kv_pairs[0::2]
@@ -270,7 +270,7 @@ def run_xadd(args: list[str]) -> bytes:
 
         event_list = WAITERS.get(key, [])  # Notify `XRANGE` that an entry has been added.
         if event_list:
-            print('if event_list executed')  # Debug
+            # print('if event_list executed')  # Debug
             event_list[0].set()  # Index 0 contains the longest-waiting client request. 
 
     return f'${len(stream_id)}\r\n{stream_id}\r\n'.encode()
@@ -372,15 +372,15 @@ async def run_xread(args: list[str]) -> bytes:
             return b'*0\r\n'
         
         matches = get_entry_matches(store_entry.value, stream_ids[i])  # Parameters (stream, stream ID)
-        print('args:', args)  # Debug
-        print('matches:', matches)  # Debug
+        # print('args:', args)  # Debug
+        # print('matches:', matches)  # Debug
 
         if 'BLOCK' in args and not matches: 
             event = asyncio.Event()
             event_list = WAITERS.get(key, [])
             event_list.append(event)
             WAITERS[key] = event_list
-            print('xread event stored', WAITERS)  # Debug
+            # print('xread event stored', WAITERS)  # Debug
             
             timeout = None if timeout == 0 else timeout
             try:
