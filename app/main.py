@@ -31,7 +31,7 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
             handler = c.COMMANDS[cmd_name]
             result = handler(args)
             print('result:', result)  # Debug
-
+            print('result coroutine instance check:', inspect.iscoroutine(result))  # Debug
             if inspect.iscoroutine(result):
                 result = await result
 
