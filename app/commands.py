@@ -404,7 +404,7 @@ async def run_xread(args: list[str]) -> bytes:
                     if event_list:
                         event_list.pop(0)  # Remove the handled event. 
                         WAITERS[key] = event_list  # Update the events list and store it.
-
+                    print('if block and not matches return path:')  # Debug
                     return ''.join(resp_array).encode()
                 except asyncio.TimeoutError:
                     return b'*-1\r\n'
@@ -413,6 +413,7 @@ async def run_xread(args: list[str]) -> bytes:
                 resp_array.append('*2\r\n')  # Each stream is a 2-element array
                 resp_array.append(f'${len(key)}\r\n{key}\r\n')  # Stream key
                 resp_array.extend(entries)    # RESP array (already includes its own array header)
+                print('if block and matches return path')  # Debug
                 return ''.join(resp_array).encode()
 
         entries = build_entries_array(matches)
@@ -420,6 +421,7 @@ async def run_xread(args: list[str]) -> bytes:
         resp_array.append(f'${len(key)}\r\n{key}\r\n')  # Stream key
         resp_array.extend(entries)    # RESP array (already includes its own array header)
 
+    print('no block in command return path')  # Debug
     return ''.join(resp_array).encode()
 
 
