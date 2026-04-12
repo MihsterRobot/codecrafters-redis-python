@@ -356,7 +356,7 @@ async def run_xread(args: list[str]) -> bytes:
         mid = len(stream_args) // 2
         keys = stream_args[:mid]
         stream_ids = stream_args[mid:]
-        timeout = float(args[2])
+        timeout = float(args[1])
     else: 
         stream_args = args[1:]  # Skip 'STREAMS'
         mid = len(stream_args) // 2
