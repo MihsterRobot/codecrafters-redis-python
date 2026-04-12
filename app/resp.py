@@ -9,7 +9,7 @@ def parse_resp(data: bytes) -> tuple[str, list[str]]:
     cmd_parts = []
     for i in range(2, stop, 2):
         # Decode each token and convert to uppercase for case-insensitive command handling.
-        cmd_parts.append(tokens[i].decode().upper())
+        cmd_parts.append(tokens[i].decode())
 
     cmd_name = cmd_parts[0]
     args = cmd_parts[1:] if len(cmd_parts) > 1 else []
