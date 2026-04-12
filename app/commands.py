@@ -137,9 +137,11 @@ async def run_blpop(args: list[str]) -> bytes:
         
         timeout = float(args[1])
         timeout = None if timeout == 0 else timeout
-        try:
-            await asyncio.wait_for(event.wait(), timeout)
-            lst = STORE[key].value
+
+        # Block until an element is pushed or the timeout expires.
+        try:  
+            await asyncio.wait_for(event.wait(), timeout)  
+            lst = STORE[key].value  # Re-fetch the updated list after being unblocked. 
         except asyncio.TimeoutError:
             return b'*-1\r\n'
     else:
@@ -378,7 +380,7 @@ async def run_xread(args: list[str]) -> bytes:
             event_list = WAITERS.get(key, [])
             event_list.append(event)
             WAITERS[key] = event_list
-            print('xread event stored')  # Debug
+            print('xread event stored', WAITERS)  # Debug
             
             timeout = None if timeout == 0 else timeout
             try:
