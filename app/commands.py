@@ -229,7 +229,7 @@ def run_xadd(args: list[str]) -> bytes:
     # for i in range(len(keys)): 
     #     fields[keys[i]] = values[i]
 
-    # print('WAITERS —', WAITERS)  # Debug
+    # print('WAITERS:', WAITERS)  # Debug
 
     ms_time, seq_num = parse_stream_id(stream_id)
 
