@@ -432,7 +432,7 @@ def run_incr(args: list[str]) -> bytes:
         try:
             result = int(store_entry.value) + 1
         except ValueError:
-            return b'-ERR value is not an integer or out of range'
+            return b'-ERR value is not an integer or out of range\r\n'
 
     STORE[key] = StoreEntry(value=str(result), expiry_time=None, redis_type='string')
 
