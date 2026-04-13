@@ -7,6 +7,8 @@ from . import commands as c
 
 
 async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
+    in_transaction = False
+
     # This coroutine is called automatically by the event loop each time a new
     # client connects. asyncio runs multiple instances of it concurrently,
     # one per connected client, without blocking the others.
@@ -26,6 +28,15 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
 
         cmd_name, args = r.parse_resp(request)
 
+        if cmd_name == 'multi':
+            in_transaction = True
+            writer.write(b'+OK\r\n')
+            continue
+        elif cmd_name == 'exec':
+            writer.write(b'*0\r\n')
+            in_transaction = False
+            continue
+            
         if cmd_name in c.COMMANDS: 
             handler = c.COMMANDS[cmd_name]
             result = handler(args)
