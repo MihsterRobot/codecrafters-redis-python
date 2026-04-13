@@ -378,11 +378,12 @@ async def run_xread(args: list[str]) -> bytes:
             return b'*0\r\n'
 
         stream = store_entry.value
+
         if stream_ids[i] == '$':
             stream_id = '0-0' if not stream else stream[-1][0]
         else: 
             stream_id = stream_ids[i]
-            
+
         matches = get_entry_matches(stream, stream_id)  
 
         if 'block' in args:
@@ -397,6 +398,7 @@ async def run_xread(args: list[str]) -> bytes:
                     await asyncio.wait_for(event.wait(), timeout)
 
                     store_entry = STORE.get(key)  # Re-fetch the stream after one or more entries has been added.
+                    
                     if store_entry is None:
                         return b'*0\r\n'
                     
