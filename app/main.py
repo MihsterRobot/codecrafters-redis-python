@@ -33,8 +33,13 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
             writer.write(b'+OK\r\n')
             continue
         elif cmd_name == 'EXEC':
-            writer.write(b'*0\r\n')
+            if in_transaction:
+                writer.write(b'*0\r\n')  
+            else: 
+                writer.write(b'ERR EXEC without MULTI\r\n')
+            
             in_transaction = False
+
             continue
             
         if cmd_name in c.COMMANDS: 
