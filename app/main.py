@@ -33,10 +33,10 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
             writer.write(b'+OK\r\n')
             continue
         elif cmd_name == 'EXEC':
-            if in_transaction:
+            if in_transaction:  # If true, MULTI was previously called.
                 writer.write(b'*0\r\n')  
             else: 
-                writer.write(b'ERR EXEC without MULTI\r\n')
+                writer.write(b'-ERR EXEC without MULTI\r\n')
             
             in_transaction = False
 
