@@ -398,7 +398,7 @@ async def run_xread(args: list[str]) -> bytes:
                     await asyncio.wait_for(event.wait(), timeout)
 
                     store_entry = STORE.get(key)  # Re-fetch the stream after one or more entries has been added.
-                    
+
                     if store_entry is None:
                         return b'*0\r\n'
                     
@@ -422,6 +422,18 @@ async def run_xread(args: list[str]) -> bytes:
     return ''.join(resp_array).encode()
 
 
+def run_incr(args: list[str]) -> bytes:
+    key = args[1]
+    store_entry = STORE.get(key)
+
+    if store_entry is None: 
+        return b'$-1\r\n'
+    
+    STORE[key] = store_entry.value + 1
+
+    return store_entry.value
+
+
 COMMANDS = {
     'PING': run_ping,
     'ECHO': run_echo,
@@ -437,4 +449,5 @@ COMMANDS = {
     'XADD': run_xadd,
     'XRANGE': run_xrange,
     'XREAD': run_xread,
+    'INCR': run_incr,
 }
