@@ -423,7 +423,7 @@ async def run_xread(args: list[str]) -> bytes:
 
 
 def run_incr(args: list[str]) -> bytes:
-    key = args[1]
+    key = args[0]
     store_entry = STORE.get(key)
 
     if store_entry is None: 
