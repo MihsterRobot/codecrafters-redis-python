@@ -444,7 +444,7 @@ def run_multi(args: list[str]) -> bytes:
 
 
 def run_exec(args: list[str]) -> bytes:
-    return b'-ERR without MULTI\r\n'
+    return b'-ERR EXEC without MULTI\r\n'
 
 
 COMMANDS = {
