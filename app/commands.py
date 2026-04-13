@@ -439,6 +439,10 @@ def run_incr(args: list[str]) -> bytes:
     return f':{result}\r\n'.encode()
 
 
+def run_multi(args: list[str]) -> bytes:
+    return b'+OK\r\n'
+
+
 COMMANDS = {
     'PING': run_ping,
     'ECHO': run_echo,
@@ -455,4 +459,5 @@ COMMANDS = {
     'XRANGE': run_xrange,
     'XREAD': run_xread,
     'INCR': run_incr,
+    'MULTI': run_multi,
 }
