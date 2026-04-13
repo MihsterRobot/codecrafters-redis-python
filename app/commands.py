@@ -362,7 +362,7 @@ async def run_xread(args: list[str]) -> bytes:
         mid = len(stream_args) // 2
         keys = stream_args[:mid]
         stream_ids = stream_args[mid:]
-        timeout = float(args[1]) // 1000  # Convert seconds to milliseconds
+        timeout = float(args[1]) // 1000  # Convert milliseconds to seconds.
     else: 
         stream_args = args[1:]  # Skip 'STREAMS'
         mid = len(stream_args) // 2
@@ -378,12 +378,11 @@ async def run_xread(args: list[str]) -> bytes:
             return b'*0\r\n'
 
         stream = store_entry.value
-
         if stream_ids[i] == '$':
-            stream_id = '0-0' if not stream else stream[-1]
+            stream_id = '0-0' if not stream else stream[-1][0]
         else: 
             stream_id = stream_ids[i]
-        
+            
         matches = get_entry_matches(stream, stream_id)  
 
         if 'block' in args:
@@ -401,7 +400,7 @@ async def run_xread(args: list[str]) -> bytes:
                     if store_entry is None:
                         return b'*0\r\n'
                     
-                    matches = get_entry_matches(stream, stream_id)
+                    matches = get_entry_matches(store_entry.value, stream_id)
                     build_stream_response(resp_array, key, matches)
                     
                     event_list = WAITERS.get(key, [])
