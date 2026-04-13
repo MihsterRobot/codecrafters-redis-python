@@ -426,10 +426,10 @@ def run_incr(args: list[str]) -> bytes:
     key = args[0]
     store_entry = STORE.get(key)
 
-    if store_entry is None: 
-        return b'$-1\r\n'
-    
-    STORE[key] = int(store_entry.value) + 1
+    if store_entry is None:
+        STORE[key] = 1
+    else:
+        STORE[key] = int(store_entry.value) + 1
 
     return f':{STORE[key]}\r\n'.encode()
 
