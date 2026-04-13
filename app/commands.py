@@ -443,6 +443,10 @@ def run_multi(args: list[str]) -> bytes:
     return b'+OK\r\n'
 
 
+def run_exec(args: list[str]) -> bytes:
+    return b'-ERR without MULTI\r\n'
+
+
 COMMANDS = {
     'PING': run_ping,
     'ECHO': run_echo,
@@ -460,4 +464,5 @@ COMMANDS = {
     'XREAD': run_xread,
     'INCR': run_incr,
     'MULTI': run_multi,
+    'EXEC': run_exec,
 }
