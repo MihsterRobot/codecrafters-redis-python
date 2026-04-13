@@ -425,11 +425,15 @@ async def run_xread(args: list[str]) -> bytes:
 def run_incr(args: list[str]) -> bytes:
     key = args[0]
     store_entry = STORE.get(key)
-
+    result = ''
+    
     if store_entry is None:
-        STORE[key] = 1
+        result = '1'
     else:
-        STORE[key] = int(store_entry.value) + 1
+        result = int(store_entry.value + 1)
+        result = str(result)
+
+    STORE[key] = StoreEntry(value=result, expiry_time=None, redis_type='string')
 
     return f':{STORE[key]}\r\n'.encode()
 
