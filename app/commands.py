@@ -429,7 +429,7 @@ def run_incr(args: list[str]) -> bytes:
     if store_entry is None: 
         return b'$-1\r\n'
     
-    STORE[key] = store_entry.value + 1
+    STORE[key] = int(store_entry.value + 1)
 
     return store_entry.value
 
