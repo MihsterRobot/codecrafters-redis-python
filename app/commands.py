@@ -435,7 +435,7 @@ def run_incr(args: list[str]) -> bytes:
 
     STORE[key] = StoreEntry(value=result, expiry_time=None, redis_type='string')
 
-    return f':{STORE[key]}\r\n'.encode()
+    return f':{result}\r\n'.encode()
 
 
 COMMANDS = {
