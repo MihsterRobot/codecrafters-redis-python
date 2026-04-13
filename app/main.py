@@ -7,6 +7,7 @@ from . import commands as c
 
 
 async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
+    # Track whether the client has an active transaction opened with MULTI.
     in_transaction = False
 
     # This coroutine is called automatically by the event loop each time a new
@@ -28,24 +29,27 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
 
         cmd_name, args = r.parse_resp(request)
 
+        # MULTI and EXEC are handled here rather than in COMMANDS since they
+        # require access to the per-connection transaction state.
         if cmd_name == 'MULTI':
             in_transaction = True
             writer.write(b'+OK\r\n')
             continue
         elif cmd_name == 'EXEC':
-            if in_transaction:  # If true, MULTI was previously called.
+            # Return an empty array if no commands were queued, or an error if MULTI was never called.
+            if in_transaction:
                 writer.write(b'*0\r\n')  
             else: 
                 writer.write(b'-ERR EXEC without MULTI\r\n')
             
             in_transaction = False
-
             continue
             
         if cmd_name in c.COMMANDS: 
             handler = c.COMMANDS[cmd_name]
             result = handler(args)
 
+            # Await the result if the handler is a coroutine (e.g. BLPOP, XREAD).
             if inspect.iscoroutine(result):
                 result = await result
 
