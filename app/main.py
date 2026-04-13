@@ -28,11 +28,11 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
 
         cmd_name, args = r.parse_resp(request)
 
-        if cmd_name == 'multi':
+        if cmd_name == 'MULTI':
             in_transaction = True
             writer.write(b'+OK\r\n')
             continue
-        elif cmd_name == 'exec':
+        elif cmd_name == 'EXEC':
             writer.write(b'*0\r\n')
             in_transaction = False
             continue
