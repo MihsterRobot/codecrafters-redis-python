@@ -426,11 +426,11 @@ def run_incr(args: list[str]) -> bytes:
     key = args[0]
     store_entry = STORE.get(key)
     result = ''
-    
+
     if store_entry is None:
         result = '1'
     else:
-        result = int(store_entry.value + 1)
+        result = int(store_entry.value) + 1
         result = str(result)
 
     STORE[key] = StoreEntry(value=result, expiry_time=None, redis_type='string')
