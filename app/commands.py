@@ -382,7 +382,9 @@ async def run_xread(args: list[str]) -> bytes:
             if store_entry.value: 
                 stream_id = '0-0'
             else: 
-                stream_id = stream_ids[i]
+                stream_id = store_entry.value[-1]
+        else: 
+            stream_id = stream_ids[i]
         
         matches = get_entry_matches(store_entry.value, stream_id)  # Parameters (stream, stream ID)
 
