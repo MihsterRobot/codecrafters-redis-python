@@ -431,7 +431,7 @@ def run_incr(args: list[str]) -> bytes:
     
     STORE[key] = int(store_entry.value) + 1
 
-    return store_entry.value
+    return f'{STORE[key]}\r\n'.encode()
 
 
 COMMANDS = {
