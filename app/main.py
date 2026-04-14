@@ -101,13 +101,19 @@ async def main() -> None:
     if '--port' in cmd_line_args:
         port = int(cmd_line_args[cmd_line_args.index('--port') + 1])
 
-    if '--replicaof' in cmd_line_args: 
-        c.SERVER_INFO['role'] = 'slave'
-    else:
-        c.SERVER_INFO['role'] = 'master'
+    c.SERVER_INFO['role'] = 'slave' if '--replicaof' in cmd_line_args else 'master'
+
+    if '--replicaof' in cmd_line_args:
+        idx = cmd_line_args.index('--replicaof')
+        master_host = cmd_line_args[idx + 1]
+        master_port = int(cmd_line_args[idx + 2])
+
+        reader, writer = await asyncio.open_connection(master_host, master_port)
+        writer.write(b'*1\r\n$4\r\nPING\r\n')
+        await writer.drain()
 
     server = await asyncio.start_server(handle_client, 'localhost', port)
-
+    
     # Run the event loop indefinitely, accepting and handling client connections.
     await server.serve_forever()
 
