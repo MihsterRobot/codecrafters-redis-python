@@ -448,9 +448,10 @@ def run_incr(args: list[str]) -> bytes:
 
 def run_info(args: list[str]) -> bytes: 
     result = []
-    for key, value in SERVER_INFO:
+    for key, value in SERVER_INFO.items():
         size = len(key) + len(value)
         result.append(f'${size}\r\n{key}:{value}\r\n')
+
     return ''.join(result).encode()
 
 
