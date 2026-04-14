@@ -443,7 +443,8 @@ def run_incr(args: list[str]) -> bytes:
 
 
 def run_info(args: list[str]) -> bytes: 
-    return SERVER_INFO['role'].encode()
+    role = SERVER_INFO['role']
+    return f'${len(role)}\r\n{role}\r\n'.encode()
 
 
 COMMANDS = {
