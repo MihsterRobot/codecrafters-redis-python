@@ -10,6 +10,8 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
     # Track whether the client has an active transaction opened with MULTI.
     in_transaction = False
 
+    queued_cmds = []
+
     # This coroutine is called automatically by the event loop each time a new
     # client connects. asyncio runs multiple instances of it concurrently,
     # one per connected client, without blocking the others.
@@ -32,6 +34,10 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
         # MULTI and EXEC are handled here rather than in COMMANDS since they
         # require access to the per-connection transaction state.
         if cmd_name == 'MULTI':
+            if in_transaction:
+                writer.write(b'-ERR MULTI calls can not be nested\r\n')
+                continue
+
             in_transaction = True
             writer.write(b'+OK\r\n')
             continue
@@ -45,6 +51,7 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
             in_transaction = False
             continue
         elif in_transaction:
+            queued_cmds.append((cmd_name, args))
             writer.write(b'+QUEUED\r\n')
             continue
             
