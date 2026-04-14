@@ -105,8 +105,9 @@ async def main() -> None:
 
     if '--replicaof' in cmd_line_args:
         idx = cmd_line_args.index('--replicaof')
-        master_host = cmd_line_args[idx + 1]
-        master_port = int(cmd_line_args[idx + 2])
+        connection_parts = cmd_line_args[idx + 1].split()
+        master_host = connection_parts[0]
+        master_port = int(connection_parts[1])
 
         reader, writer = await asyncio.open_connection(master_host, master_port)
         writer.write(b'*1\r\n$4\r\nPING\r\n')
