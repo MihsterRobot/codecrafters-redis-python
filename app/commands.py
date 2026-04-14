@@ -440,7 +440,10 @@ def run_incr(args: list[str]) -> bytes:
 
 
 def run_info(args: list[str]) -> bytes: 
-    return b'$11\r\nrole:master\r\n'
+    if '--replicaof' in args:
+        return b'$11\r\nrole:slave\r\n'
+    else:
+        return b'$11\r\nrole:master\r\n'
 
 
 COMMANDS = {
