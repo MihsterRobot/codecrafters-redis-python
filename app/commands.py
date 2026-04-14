@@ -10,7 +10,7 @@ WAITERS = {}
 SERVER_INFO = {
     'role': 'master',
     'master_replid':  secrets.token_hex(20),
-    'master_repl_offset': 0,
+    'master_repl_offset': '0',
 }
 
 
