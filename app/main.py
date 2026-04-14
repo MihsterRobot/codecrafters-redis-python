@@ -6,10 +6,19 @@ from . import resp as r
 from . import commands as c
 
 
-async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
-    # Track whether the client has an active transaction opened with MULTI.
-    in_transaction = False
+async def run_cmd(name: str, arg: list[str]) -> bytes:
+        handler = c.COMMANDS[name]
+        result = handler(arg)
 
+        # Await the result if the handler is a coroutine (e.g. BLPOP, XREAD).
+        if inspect.iscoroutine(result):
+            result = await result
+
+        return result
+
+
+async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
+    in_transaction = False  # Track whether the client has an active transaction opened with MULTI.
     queued_cmds = []
 
     # This coroutine is called automatically by the event loop each time a new
@@ -42,27 +51,33 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
             writer.write(b'+OK\r\n')
             continue
         elif cmd_name == 'EXEC':
-            # Return an empty array if no commands were queued, or an error if MULTI was never called.
-            if in_transaction:
-                writer.write(b'*0\r\n')  
-            else: 
+            # Return an error if MULTI was never called.
+            if not in_transaction: 
                 writer.write(b'-ERR EXEC without MULTI\r\n')
-            
+                continue
+
+            # Return an empty array if no commands were queued.
+            if not queued_cmds:
+                writer.write(b'*0\r\n')
+                in_transaction = False
+                continue
+
+            resp_array = [f'*{len(queued_cmds)}\r\n'.encode()]
+            for name, arg in queued_cmds:
+                result = await run_cmd(name, arg)
+                resp_array.append(result)
+
+            writer.write(b''.join(resp_array))
+            queued_cmds = []
             in_transaction = False
             continue
         elif in_transaction:
             queued_cmds.append((cmd_name, args))
             writer.write(b'+QUEUED\r\n')
             continue
-            
+        
         if cmd_name in c.COMMANDS: 
-            handler = c.COMMANDS[cmd_name]
-            result = handler(args)
-
-            # Await the result if the handler is a coroutine (e.g. BLPOP, XREAD).
-            if inspect.iscoroutine(result):
-                result = await result
-
+            result = await run_cmd(cmd_name, args)
             writer.write(result)
 
 
