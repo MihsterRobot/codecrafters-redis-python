@@ -110,7 +110,11 @@ async def main() -> None:
         master_port = int(master_addr_parts[1])
 
         reader, writer = await asyncio.open_connection(master_host, master_port)
+
         writer.write(b'*1\r\n$4\r\nPING\r\n')
+        writer.write(f'*3\r\n$8\r\nREPLCONF\r\n$14\r\nlistening-port\r\n${len(str(port))}\r\n{port}\r\n'.encode())
+        writer.write(b'*3\r\n$8\r\nREPLCONF\r\n$4\r\ncapa\r\n$6\r\npsync2\r\n')
+        
         await writer.drain()
 
     server = await asyncio.start_server(handle_client, 'localhost', port)
