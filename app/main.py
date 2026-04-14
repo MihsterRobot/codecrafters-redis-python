@@ -71,6 +71,15 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
             queued_cmds = []
             in_transaction = False
             continue
+        elif cmd_name == 'DISCARD':
+            if not in_transaction:
+                writer.write(b'-ERR DISCARD without MULTI\r\n')
+                continue
+
+            queued_cmds = []
+            writer.write(b'+OK\r\n')
+            in_transaction = False
+            continue
         elif in_transaction:
             queued_cmds.append((cmd_name, args))
             writer.write(b'+QUEUED\r\n')
