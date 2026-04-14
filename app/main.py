@@ -103,6 +103,8 @@ async def main() -> None:
 
     if '--replicaof' in cmd_line_args: 
         c.SERVER_INFO['role'] = 'slave'
+    else:
+        c.SERVER_INFO['role'] = 'master'
 
     server = await asyncio.start_server(handle_client, 'localhost', port)
 
