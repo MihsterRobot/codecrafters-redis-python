@@ -459,4 +459,5 @@ COMMANDS = {
     'XRANGE': run_xrange,
     'XREAD': run_xread,
     'INCR': run_incr,
+    'INFO': run_info,
 }
