@@ -447,12 +447,10 @@ def run_incr(args: list[str]) -> bytes:
 
 
 def run_info(args: list[str]) -> bytes: 
-    result = []
+    content = '# Replication\r\n'
     for key, value in SERVER_INFO.items():
-        size = len(key) + len(value)
-        result.append(f'${size}\r\n{key}:{value}\r\n')
-
-    return ''.join(result).encode()
+        content += f'{key}:{value}\r\n'
+    return f'${len(content)}\r\n{content}\r\n'.encode()
 
 
 COMMANDS = {
