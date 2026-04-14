@@ -95,7 +95,10 @@ async def main() -> None:
     # Start a TCP server on localhost:6379 (Redis's default port).
     # handle_client is passed as a callback; the event loop calls it with a
     # (reader, writer) pair each time a new client connects.
-    port = sys.argv[2] if sys.argv[1] == '--port' else 6379
+    cmd_line_args = sys.argv
+    port = 6379
+    if len(cmd_line_args) > 1: 
+        port = sys.argv[2] if sys.argv[1] == '--port' else port
     server = await asyncio.start_server(handle_client, 'localhost', port)
 
     # Run the event loop indefinitely, accepting and handling client connections.
