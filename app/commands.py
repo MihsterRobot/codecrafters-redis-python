@@ -439,6 +439,10 @@ def run_incr(args: list[str]) -> bytes:
     return f':{result}\r\n'.encode()
 
 
+def run_info(args: list[str]) -> bytes: 
+    return b'$11\r\nrole:master\r\n'
+
+
 COMMANDS = {
     'PING': run_ping,
     'ECHO': run_echo,
