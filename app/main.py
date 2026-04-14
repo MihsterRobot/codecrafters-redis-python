@@ -98,7 +98,7 @@ async def main() -> None:
     cmd_line_args = sys.argv
     port = 6379
     if len(cmd_line_args) > 1: 
-        port = sys.argv[2] if sys.argv[1] == '--port' else port
+        port = sys.argv[2] 
     server = await asyncio.start_server(handle_client, 'localhost', port)
 
     # Run the event loop indefinitely, accepting and handling client connections.
