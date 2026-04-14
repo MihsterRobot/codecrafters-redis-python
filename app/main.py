@@ -113,7 +113,7 @@ async def main() -> None:
 
         writer.write(b'*1\r\n$4\r\nPING\r\n')
         await writer.drain()
-        await reader.read(1024)
+        await reader.read(1024)  # Wait for +PONG response from master server. 
         
         writer.write(f'*3\r\n$8\r\nREPLCONF\r\n$14\r\nlistening-port\r\n${len(str(port))}\r\n{port}\r\n'.encode())
         writer.write(b'*3\r\n$8\r\nREPLCONF\r\n$4\r\ncapa\r\n$6\r\npsync2\r\n')
