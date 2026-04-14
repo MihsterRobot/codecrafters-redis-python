@@ -1,12 +1,16 @@
 import sys
+import secrets
 import asyncio
 from time import time
 from typing import NamedTuple
 
 STORE = {}
 WAITERS = {}
+
 SERVER_INFO = {
     'role': 'master',
+    'master_replid':  secrets.token_hex(20),
+    'master_repl_offset': 0,
 }
 
 
@@ -443,8 +447,11 @@ def run_incr(args: list[str]) -> bytes:
 
 
 def run_info(args: list[str]) -> bytes: 
-    role = 'role:' + SERVER_INFO['role']
-    return f'${len(role)}\r\n{role}\r\n'.encode()
+    result = []
+    for key, value in SERVER_INFO:
+        size = len(key) + len(value)
+        result.append(f'${size}\r\n{key}:{value}\r\n')
+    return ''.join(result).encode()
 
 
 COMMANDS = {
