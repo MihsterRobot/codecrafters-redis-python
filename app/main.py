@@ -97,9 +97,12 @@ async def main() -> None:
     # (reader, writer) pair each time a new client connects.
     cmd_line_args = sys.argv
     port = 6379
-    
+
     if '--port' in cmd_line_args:
         port = int(cmd_line_args[cmd_line_args.index('--port') + 1])
+
+    if '--replicaof' in cmd_line_args: 
+        c.SERVER_INFO['role'] = 'slave'
 
     server = await asyncio.start_server(handle_client, 'localhost', port)
 

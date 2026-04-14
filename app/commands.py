@@ -5,6 +5,9 @@ from typing import NamedTuple
 
 STORE = {}
 WAITERS = {}
+SERVER_INFO = {
+    'role': 'master',
+}
 
 
 class StoreEntry(NamedTuple): 
@@ -440,10 +443,7 @@ def run_incr(args: list[str]) -> bytes:
 
 
 def run_info(args: list[str]) -> bytes: 
-    if '--replicaof' in args:
-        return b'$11\r\nrole:slave\r\n'
-    else:
-        return b'$11\r\nrole:master\r\n'
+    return SERVER_INFO['role'].encode()
 
 
 COMMANDS = {
