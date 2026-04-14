@@ -330,7 +330,7 @@ def run_xrange(args: list[str]) -> bytes:
 
 
 def get_entry_matches(stream: list[tuple[str, dict[str, str]]], stream_id: str) -> list[tuple[str, list[str]]]:
-    # XREAD is exclusive; entries with this ID are not included in the result.
+    # Exclusive comparison; entries with an ID equal to stream_id are not included.
     start_ms_time, start_seq_num = parse_stream_id(stream_id)
 
     matches = []

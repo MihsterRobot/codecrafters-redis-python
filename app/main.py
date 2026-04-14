@@ -44,6 +44,8 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
             
             in_transaction = False
             continue
+        elif in_transaction:
+            writer.write(b'+QUEUED\r\n')
             
         if cmd_name in c.COMMANDS: 
             handler = c.COMMANDS[cmd_name]
