@@ -96,9 +96,7 @@ async def main() -> None:
     # handle_client is passed as a callback; the event loop calls it with a
     # (reader, writer) pair each time a new client connects.
     cmd_line_args = sys.argv
-    port = 6379
-    if len(cmd_line_args) > 1: 
-        port = sys.argv[2] 
+    port = cmd_line_args[2] if len(cmd_line_args) > 1 else 6379
     server = await asyncio.start_server(handle_client, 'localhost', port)
 
     # Run the event loop indefinitely, accepting and handling client connections.
