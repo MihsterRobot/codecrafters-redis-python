@@ -31,7 +31,7 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
 
         # MULTI and EXEC are handled here rather than in COMMANDS since they
         # require access to the per-connection transaction state.
-        if cmd_name == 'MULTI':
+        if cmd_name == 'MULTI' and not in_transaction:
             in_transaction = True
             writer.write(b'+OK\r\n')
             continue
