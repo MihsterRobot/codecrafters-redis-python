@@ -90,6 +90,11 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
             result = await run_cmd(cmd_name, args)
             writer.write(result)
 
+            if cmd_name == 'PSYNC': 
+                rdb_file = '524544495330303131fa0972656469732d76657205372e322e30fa0a72656469732d62697473c040fa056374696d65c26d08bc65fa08757365642d6d656dc2b0c41000fa08616f662d62617365c000fff06e3bfec0ff5aa2'.encode()
+                size = len(rdb_file)
+                writer.write(f'${size}\r\n{rdb_file}'.encode())
+
 
 async def main() -> None:
     # Start a TCP server on the specified port, defaulting to 6379 if not provided.
@@ -129,12 +134,6 @@ async def main() -> None:
         writer.write(b'*3\r\n$5\r\nPSYNC\r\n$1\r\n?\r\n$2\r\n-1\r\n')
         await writer.drain()
         await reader.read(1024)  # Wait for +FULLRESYNC response.
-
-        rdb_file = '524544495330303131fa0972656469732d76657205372e322e30fa0a72656469732d62697473c040fa056374696d65c26d08bc65fa08757365642d6d656dc2b0c41000fa08616f662d62617365c000fff06e3bfec0ff5aa2'.encode()
-        size = len(rdb_file)
-        writer.write(f'${size}\r\n{rdb_file}'.encode())
-        await writer.drain()
-        await reader.read(1024)
 
     # Start the TCP server and begin accepting client connections.
     server = await asyncio.start_server(handle_client, 'localhost', port)
