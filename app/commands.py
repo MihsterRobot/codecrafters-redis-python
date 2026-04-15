@@ -457,6 +457,11 @@ def run_replconf(args: list[str]) -> bytes:
     return b'+OK\r\n'
 
 
+def run_psync(args: list[str]) -> bytes:
+    id = SERVER_INFO['master_replid'] 
+    offset = SERVER_INFO['master_repl_offset']
+    return f'+FULLRESYNC{id}{offset}\r\n'.encode()
+
 COMMANDS = {
     'PING': run_ping,
     'ECHO': run_echo,
