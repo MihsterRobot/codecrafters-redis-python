@@ -122,7 +122,8 @@ async def main() -> None:
         writer.write(b'*3\r\n$8\r\nREPLCONF\r\n$4\r\ncapa\r\n$6\r\npsync2\r\n')
         await writer.drain()
 
-        await reader.read(1024)
+        await reader.read(1024)  # Wait for +OK response to first REPLCONF.
+        await reader.read(1024)  # Wait for +OK response to second REPLCONF. 
 
         # The PSYNC command is used to synchronize the state of the replica with the master.
         writer.write(b'*3\r\n$5\r\nPSYNC\r\n$1\r\n?\r\n$2\r\n-1\r\n')
