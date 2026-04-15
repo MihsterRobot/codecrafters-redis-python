@@ -111,14 +111,16 @@ async def main() -> None:
 
         reader, writer = await asyncio.open_connection(master_host, master_port)
 
-        writer.write(b'*1\r\n$4\r\nPING\r\n')
+        writer.write(b'*1\r\n$4\r\nPING\r\n')  # Send a PING to the master server. 
         await writer.drain()
         await reader.read(1024)  # Wait for a +PONG response from the master server. 
         
+        # Send both REPLCONF response to the master server.
         writer.write(f'*3\r\n$8\r\nREPLCONF\r\n$14\r\nlistening-port\r\n${len(str(port))}\r\n{port}\r\n'.encode())
         writer.write(b'*3\r\n$8\r\nREPLCONF\r\n$4\r\ncapa\r\n$6\r\npsync2\r\n')
         await writer.drain()
 
+        # The PSYNC command is used to synchronize the state of the replica with the master.
         writer.write(b'*3\r\n$5\r\nPSYNC\r\n$1\r\n?\r\n$2\r\n-1\r\n')
         await writer.drain()
 
