@@ -97,6 +97,7 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
                 writer.write(f'${len(rdb_file)}\r\n'.encode() + rdb_file)
                 await writer.drain()
 
+            # Propagate 'write' commands to all connected replicas.
             if cmd_name in c.WRITE_COMMANDS:
                 for rpl_writer in c.REPLICA_WRITERS:
                     rpl_writer.write(request)
