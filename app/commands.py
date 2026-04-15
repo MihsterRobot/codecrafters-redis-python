@@ -480,4 +480,5 @@ COMMANDS = {
     'INCR': run_incr,
     'INFO': run_info,
     'REPLCONF': run_replconf,
+    'PSYNC': run_psync,
 }
