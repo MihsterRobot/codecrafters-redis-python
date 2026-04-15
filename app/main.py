@@ -129,6 +129,8 @@ async def main() -> None:
         writer.write(b'*3\r\n$5\r\nPSYNC\r\n$1\r\n?\r\n$2\r\n-1\r\n')
         await writer.drain()
 
+        await reader.read(1024)
+
     server = await asyncio.start_server(handle_client, 'localhost', port)
     
     # Run the event loop indefinitely, accepting and handling client connections.
