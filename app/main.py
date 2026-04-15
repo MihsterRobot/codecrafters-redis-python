@@ -120,7 +120,7 @@ async def main() -> None:
         
         # The REPLCONF command is used to configure a connected replica. 
         writer.write(f'*3\r\n$8\r\nREPLCONF\r\n$14\r\nlistening-port\r\n${len(str(port))}\r\n{port}\r\n'.encode())  # Inform the master of the replica's listening port.
-        writer.write(b'*3\r\n$8\r\nREPLCONF\r\n$4\r\ncapa\r\n$6\r\npsync2\r\n')  # # Inform the master of the replica's capabilities (supports PSYNC2 protocol).
+        writer.write(b'*3\r\n$8\r\nREPLCONF\r\n$4\r\ncapa\r\n$6\r\npsync2\r\n')  # Inform the master of the replica's capabilities (supports PSYNC2 protocol).
         await writer.drain()
         await reader.read(1024)  # Wait for +OK response to first REPLCONF. 
         await reader.read(1024)  # Wait for +OK response to second REPLCONF. 

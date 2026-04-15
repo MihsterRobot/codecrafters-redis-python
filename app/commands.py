@@ -453,6 +453,10 @@ def run_info(args: list[str]) -> bytes:
     return f'${len(content)}\r\n{content}\r\n'.encode()
 
 
+def run_replconf(args: list[str]) -> bytes:
+    return b'+OK\r\n'
+
+
 COMMANDS = {
     'PING': run_ping,
     'ECHO': run_echo,
@@ -470,4 +474,5 @@ COMMANDS = {
     'XREAD': run_xread,
     'INCR': run_incr,
     'INFO': run_info,
+    'REPLCONF': run_replconf,
 }
