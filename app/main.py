@@ -93,6 +93,7 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
 
 async def main() -> None:
     # Start a TCP server on the specified port, defaulting to 6379 if not provided.
+    # If running as a replica, perform the replication handshake with the master before accepting connections.
     # handle_client is passed as a callback; the event loop calls it with a
     # (reader, writer) pair each time a new client connects.
     cmd_line_args = sys.argv
@@ -109,28 +110,27 @@ async def main() -> None:
         master_host = master_addr_parts[0]
         master_port = int(master_addr_parts[1])
 
+        # Open a TCP connection to the master server to initiate the replication handshake. 
         reader, writer = await asyncio.open_connection(master_host, master_port)
 
         # The replica server begins the handshake by sending a PING command to the master server.
         writer.write(b'*1\r\n$4\r\nPING\r\n')  
         await writer.drain()
-
-        await reader.read(1024)  # Wait for a +PONG response from the master server. 
+        await reader.read(1024)  # Wait for +PONG response from the master server. 
         
         # The REPLCONF command is used to configure a connected replica. 
-        writer.write(f'*3\r\n$8\r\nREPLCONF\r\n$14\r\nlistening-port\r\n${len(str(port))}\r\n{port}\r\n'.encode())
-        writer.write(b'*3\r\n$8\r\nREPLCONF\r\n$4\r\ncapa\r\n$6\r\npsync2\r\n')
+        writer.write(f'*3\r\n$8\r\nREPLCONF\r\n$14\r\nlistening-port\r\n${len(str(port))}\r\n{port}\r\n'.encode())  # Inform the master of the replica's listening port.
+        writer.write(b'*3\r\n$8\r\nREPLCONF\r\n$4\r\ncapa\r\n$6\r\npsync2\r\n')  # # Inform the master of the replica's capabilities (supports PSYNC2 protocol).
         await writer.drain()
-
-        await reader.read(1024)  # Wait for +OK response to first REPLCONF.
+        await reader.read(1024)  # Wait for +OK response to first REPLCONF. 
         await reader.read(1024)  # Wait for +OK response to second REPLCONF. 
 
         # The PSYNC command is used to synchronize the state of the replica with the master.
         writer.write(b'*3\r\n$5\r\nPSYNC\r\n$1\r\n?\r\n$2\r\n-1\r\n')
         await writer.drain()
+        await reader.read(1024)  # Wait for +FULLRESYNC response. 
 
-        await reader.read(1024)
-
+    # Start the TCP server and begin accepting client connections.
     server = await asyncio.start_server(handle_client, 'localhost', port)
     
     # Run the event loop indefinitely, accepting and handling client connections.
