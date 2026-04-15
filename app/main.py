@@ -90,9 +90,16 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
             result = await run_cmd(cmd_name, args)
             writer.write(result)
 
-            if cmd_name == 'PSYNC': 
+            # The master server sends a snapshot of its current state to the replica as an RDB file. 
+            if cmd_name == 'PSYNC':
+                c.REPLICA_WRITERS.append(writer) 
                 rdb_file = bytes.fromhex('524544495330303131fa0972656469732d76657205372e322e30fa0a72656469732d62697473c040fa056374696d65c26d08bc65fa08757365642d6d656dc2b0c41000fa08616f662d62617365c000fff06e3bfec0ff5aa2')
                 writer.write(f'${len(rdb_file)}\r\n'.encode() + rdb_file)
+
+            if cmd_name in c.WRITE_COMMANDS:
+                for rpl_writer in c.REPLICA_WRITERS:
+                    rpl_writer.write(request)
+                    await rpl_writer.drain()
 
 
 async def main() -> None:
@@ -117,8 +124,10 @@ async def main() -> None:
         # Open a TCP connection to the master server to initiate the replication handshake. 
         reader, writer = await asyncio.open_connection(master_host, master_port)
 
-        # The replica server begins the handshake by sending a PING command to the master server.
-        writer.write(b'*1\r\n$4\r\nPING\r\n')  
+        # drain() ensures the write buffer is flushed before awaiting a response.
+        # Without it, data may sit in asyncio's internal buffer due to Nagle's algorithm
+        # or delayed transmission, causing both sides to wait on each other indefinitely.
+        writer.write(b'*1\r\n$4\r\nPING\r\n')  # The replica server begins the handshake by sending a PING command to the master server.
         await writer.drain()
         await reader.read(1024)  # Wait for +PONG response from the master server. 
         

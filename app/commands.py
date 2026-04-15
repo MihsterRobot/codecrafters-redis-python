@@ -7,6 +7,8 @@ from typing import NamedTuple
 STORE = {}
 WAITERS = {}
 
+REPLICA_WRITERS = []
+WRITE_COMMANDS = ['SET', 'RPUSH', 'LPUSH', 'LPOP', 'BLPOP', 'XADD', 'INCR']
 SERVER_INFO = {
     'role': 'master',
     'master_replid':  secrets.token_hex(20),
@@ -458,9 +460,7 @@ def run_replconf(args: list[str]) -> bytes:
 
 
 def run_psync(args: list[str]) -> bytes:
-    id = SERVER_INFO['master_replid'] 
-    offset = SERVER_INFO['master_repl_offset']
-    return f'+FULLRESYNC {id} {offset}\r\n'.encode()
+    return f'+FULLRESYNC {SERVER_INFO['master_replid']} {SERVER_INFO['master_repl_offset']}\r\n'.encode()
 
 COMMANDS = {
     'PING': run_ping,
