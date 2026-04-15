@@ -95,6 +95,7 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
                 c.REPLICA_WRITERS.append(writer) 
                 rdb_file = bytes.fromhex('524544495330303131fa0972656469732d76657205372e322e30fa0a72656469732d62697473c040fa056374696d65c26d08bc65fa08757365642d6d656dc2b0c41000fa08616f662d62617365c000fff06e3bfec0ff5aa2')
                 writer.write(f'${len(rdb_file)}\r\n'.encode() + rdb_file)
+                await writer.drain()
 
             if cmd_name in c.WRITE_COMMANDS:
                 for rpl_writer in c.REPLICA_WRITERS:
