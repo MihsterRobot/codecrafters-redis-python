@@ -1,5 +1,6 @@
+'''Async TCP server implementing a subset of the Redis protocol.'''
+
 import sys
-import socket  # noqa: F401
 import asyncio
 import inspect
 
@@ -8,17 +9,27 @@ from . import commands as c
 
 
 async def run_cmd(name: str, arg: list[str]) -> bytes:
-        handler = c.COMMANDS[name]
-        result = handler(arg)
+    '''Look up and execute a command handler by name, awaiting it if it is a coroutine.
 
-        # Await the result if the handler is a coroutine (e.g. BLPOP, XREAD).
-        if inspect.iscoroutine(result):
-            result = await result
+    Args:
+        name: The name of the command to execute.
+        arg: The list of arguments to pass to the handler.
 
-        return result
+    Returns:
+        The RESP-encoded response as bytes.
+    '''
+    handler = c.COMMANDS[name]
+    result = handler(arg)
+
+    # Await the result if the handler is a coroutine (e.g. BLPOP, XREAD).
+    if inspect.iscoroutine(result):
+        result = await result
+
+    return result
 
 
 async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
+    '''Manage the lifecycle of a single client connection, including command parsing, dispatch, and transaction state.'''
     in_transaction = False  # Track whether the client has an active transaction opened with MULTI.
     queued_cmds = []
 
@@ -47,7 +58,6 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
             if in_transaction:
                 writer.write(b'-ERR MULTI calls can not be nested\r\n')
                 continue
-
             in_transaction = True
             writer.write(b'+OK\r\n')
             continue
@@ -76,7 +86,6 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
             if not in_transaction:
                 writer.write(b'-ERR DISCARD without MULTI\r\n')
                 continue
-
             queued_cmds = []
             writer.write(b'+OK\r\n')
             in_transaction = False
@@ -100,16 +109,18 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
 
             # Propagate 'write' commands to all connected replicas.
             if cmd_name in c.WRITE_COMMANDS:
-                for rpl_writer in c.REPLICA_WRITERS:
-                    rpl_writer.write(request)
-                    await rpl_writer.drain()
+                for repl_writer in c.REPLICA_WRITERS:
+                    repl_writer.write(request)
+                    await repl_writer.drain()
 
 
 async def main() -> None:
-    # Start a TCP server on the specified port, defaulting to 6379 if not provided.
-    # If running as a replica, perform the replication handshake with the master before accepting connections.
-    # handle_client is passed as a callback; the event loop calls it with a
-    # (reader, writer) pair each time a new client connects.
+    '''Entry point for the Redis server.
+    
+    Parses command-line arguments to determine the port and replication role.
+    If running as a replica, performs the replication handshake with the master.
+    Starts the TCP server and runs the event loop indefinitely.
+    '''
     cmd_line_args = sys.argv
     port = 6379
 
@@ -136,7 +147,7 @@ async def main() -> None:
         
         # The REPLCONF command is used to configure a connected replica. 
         writer.write(f'*3\r\n$8\r\nREPLCONF\r\n$14\r\nlistening-port\r\n${len(str(port))}\r\n{port}\r\n'.encode())  # Inform the master of the replica's listening port.
-        writer.write(b'*3\r\n$8\r\nREPLCONF\r\n$4\r\ncapa\r\n$6\r\npsync2\r\n')  # Inform the master of the replica's capabilities (supports PSYNC2 protocol).
+        writer.write(b'*3\r\n$8\r\nREPLCONF\r\n$4\r\ncapa\r\n$6\r\npsync2\r\n')  # Inform the master of the replica's capabilities (e.g., supports PSYNC2 protocol).
         await writer.drain()
         await reader.read(1024)  # Wait for +OK response to first REPLCONF. 
         await reader.read(1024)  # Wait for +OK response to second REPLCONF. 
@@ -147,6 +158,8 @@ async def main() -> None:
         await reader.read(1024)  # Wait for +FULLRESYNC response.
 
     # Start the TCP server and begin accepting client connections.
+    # handle_client is passed as a callback; the event loop calls it with a
+    # (reader, writer) pair each time a new client connects.
     server = await asyncio.start_server(handle_client, 'localhost', port)
     
     # Run the event loop indefinitely, accepting and handling client connections.

@@ -1,3 +1,5 @@
+'''Redis command handlers, data store, and server configuration.'''
+
 import sys
 import secrets
 import asyncio
@@ -7,8 +9,10 @@ from typing import NamedTuple
 STORE = {}
 WAITERS = {}
 
+# REPLICA_WRITERS only contains writers for connections where PSYNC was received.
 REPLICA_WRITERS = []
 WRITE_COMMANDS = ['SET', 'RPUSH', 'LPUSH', 'LPOP', 'BLPOP', 'XADD', 'INCR']
+
 SERVER_INFO = {
     'role': 'master',
     'master_replid':  secrets.token_hex(20),
@@ -16,21 +20,52 @@ SERVER_INFO = {
 }
 
 
-class StoreEntry(NamedTuple): 
+class StoreEntry(NamedTuple):
+    '''Represents a value stored in the Redis data store.
+
+    Attributes:
+        value: The stored value, which can be a string, a list of strings,
+               or a list of stream entries.
+        expiry_time: The Unix timestamp at which the entry expires,
+                     or None if the entry has no expiry.
+        redis_type: The Redis type of the stored value (e.g. 'string',
+                    'list', 'stream').
+    '''
     value: str | list[str] | list[tuple[str, dict[str, str]]]
     expiry_time: float | None
     redis_type: str
 
 
 def run_ping(args: list[str]) -> bytes:
+    '''Test the connection between a client and the server.
+    
+    Returns:
+        A +PONG response to indicate a successful connection.
+    '''
     return b'+PONG\r\n'
 
 
 def run_echo(args: list[str]) -> bytes:
+    '''Return the provided string back to the client.
+    
+    Args:
+        args: The list of arguments where args[0] is the string to echo. 
+
+    Returns: 
+        The input string encoded as a RESP bulk string.
+    '''
     return f'${len(args[0])}\r\n{args[0]}\r\n'.encode()
 
 
 def run_type(args: list[str]) -> bytes:
+    '''Look up the Redis type of the value stored at the given key.
+    
+    Args:
+        args: The list of arguments where args[0] is the key to look up.
+
+    Returns:
+        The Redis type as a RESP simple string, or +none if the key doesn't exist.
+    '''
     key = args[0]
     store_entry = STORE.get(key)
 
@@ -42,6 +77,15 @@ def run_type(args: list[str]) -> bytes:
 
 
 def run_set(args: list[str]) -> bytes:
+    '''Store a key-value pair in the data store with an optional expiry time.
+
+    Args:
+        args: The list of arguments where args[0] is the key, args[1] is the value,
+              and optional PX or EX arguments specify the expiry in milliseconds or seconds.
+
+    Returns:
+        +OK on success.
+    '''
     key = args[0]
     expiry_time = None
 
@@ -56,6 +100,15 @@ def run_set(args: list[str]) -> bytes:
 
 
 def run_get(args: list[str]) -> bytes:
+    '''Retrieve the value stored at the given key.
+
+    Args:
+        args: The list of arguments where args[0] is the key to look up.
+
+    Returns:
+        The value as a RESP bulk string, or a null bulk string if the key
+        doesn't exist or has expired.
+    '''
     key = args[0]
     store_entry = STORE.get(key)
 
@@ -67,7 +120,16 @@ def run_get(args: list[str]) -> bytes:
     return f'${len(store_entry.value)}\r\n{store_entry.value}\r\n'.encode()
 
 
-def run_rpush(args: list[str]) -> bytes: 
+def run_rpush(args: list[str]) -> bytes:
+    '''Append one or more elements to the tail of a list.
+
+    Args:
+        args: The list of arguments where args[0] is the key and args[1:] are
+              the elements to append.
+
+    Returns:
+        The length of the list after the push as a RESP integer.
+    '''
     key, elements = args[0], args[1:]
     store_entry = STORE.get(key)
     lst = store_entry.value if store_entry is not None else []
@@ -82,7 +144,16 @@ def run_rpush(args: list[str]) -> bytes:
     return f':{len(lst)}\r\n'.encode()
 
 
-def run_lpush(args: list[str]) -> bytes: 
+def run_lpush(args: list[str]) -> bytes:
+    '''Prepend one or more elements to the head of a list.
+
+    Args:
+        args: The list of arguments where args[0] is the key and args[1:] are
+              the elements to prepend.
+
+    Returns:
+        The length of the list after the push as a RESP integer.
+    '''
     key, elements = args[0], args[1:]
     store_entry = STORE.get(key)
     lst = store_entry.value if store_entry is not None else []
@@ -94,7 +165,17 @@ def run_lpush(args: list[str]) -> bytes:
     return f':{len(lst)}\r\n'.encode()
 
 
-def run_lpop(args: list[str]) -> bytes: 
+def run_lpop(args: list[str]) -> bytes:
+    '''Remove and return one or more elements from the head of a list.
+
+    Args:
+        args: The list of arguments where args[0] is the key and the optional
+              args[1] specifies the number of elements to pop.
+
+    Returns:
+        The popped element as a RESP bulk string, a RESP array of popped elements
+        if a count was specified, or a null bulk string if the list is empty.
+    '''
     key = args[0]
     store_entry = STORE.get(key)
     lst = store_entry.value if store_entry is not None else []
@@ -134,6 +215,16 @@ def run_lpop(args: list[str]) -> bytes:
 
 
 async def run_blpop(args: list[str]) -> bytes:
+    '''Remove and return the first element of a list, blocking if the list is empty.
+
+    Args:
+        args: The list of arguments where args[0] is the key and args[1] is the
+              timeout in seconds. A timeout of 0 blocks indefinitely.
+
+    Returns:
+        A two-element RESP array containing the key and the popped element,
+        or a null array if the timeout expires before an element is available.
+    '''
     key = args[0]
     store_entry = STORE.get(key)
     lst = store_entry.value if store_entry is not None else []
@@ -166,6 +257,16 @@ async def run_blpop(args: list[str]) -> bytes:
 
 
 def run_lrange(args: list[str]) -> bytes:
+    '''Return a range of elements from a list.
+
+    Args:
+        args: The list of arguments where args[0] is the key, args[1] is the
+              start index, and args[2] is the stop index. Negative indexes are
+              supported.
+
+    Returns:
+        A RESP array of elements within the specified range.
+    '''
     key = args[0]
     store_entry = STORE.get(key)
 
@@ -202,6 +303,14 @@ def run_lrange(args: list[str]) -> bytes:
 
 
 def run_llen(args: list[str]) -> bytes:
+    '''Return the length of a list.
+
+    Args:
+        args: The list of arguments where args[0] is the key.
+
+    Returns:
+        The length of the list as a RESP integer, or 0 if the key doesn't exist.
+    '''
     key = args[0]
     store_entry = STORE.get(key)
     lst = store_entry.value if store_entry is not None else []
@@ -213,6 +322,15 @@ def run_llen(args: list[str]) -> bytes:
 
 
 def parse_stream_id(stream_id: str) -> tuple[int, int | str]:
+    '''Parse a stream ID string into its millisecond time and sequence number components.
+
+    Args:
+        stream_id: The stream ID string in the format <ms_time>-<seq_num>,
+                   or * to auto-generate using the current time.
+
+    Returns:
+        A tuple of (ms_time, seq_num) where seq_num may be an int or '*'.
+    '''
     if stream_id == '*':
         return int(time() * 1000), '*'
     
@@ -227,7 +345,17 @@ def parse_stream_id(stream_id: str) -> tuple[int, int | str]:
     return ms_time, seq_num
 
 
-def run_xadd(args: list[str]) -> bytes: 
+def run_xadd(args: list[str]) -> bytes:
+    '''Append a new entry to a stream.
+
+    Args:
+        args: The list of arguments where args[0] is the key, args[1] is the
+              entry ID, and args[2:] are alternating field-value pairs.
+
+    Returns:
+        The ID of the newly added entry as a RESP bulk string, or an error
+        if the ID is invalid.
+    '''
     stream_id = args[1]
     kv_pairs = args[2:]
     keys = kv_pairs[0::2]
@@ -284,10 +412,19 @@ def run_xadd(args: list[str]) -> bytes:
     return f'${len(stream_id)}\r\n{stream_id}\r\n'.encode()
 
 
-def build_entries_array(args: list[tuple[str, list[str]]]) -> list[str]: 
+def build_entries_array(args: list[tuple[str, list[str]]]) -> list[str]:
+    '''Build a RESP array of stream entries.
+
+    Args:
+        args: A list of tuples where each tuple contains a stream ID and a
+              flat list of alternating field keys and values.
+
+    Returns:
+        A list of RESP-encoded strings representing the entries array.
+    '''
     entries = [f'*{len(args)}\r\n']
 
-    for stream_id, kv_list in args:  # Unpack tuple entry
+    for stream_id, kv_list in args:
         entries.append('*2\r\n')
         entries.append(f'${len(stream_id)}\r\n{stream_id}\r\n')
         entries.append(f'*{len(kv_list)}\r\n')
@@ -300,6 +437,16 @@ def build_entries_array(args: list[tuple[str, list[str]]]) -> list[str]:
 
 
 def run_xrange(args: list[str]) -> bytes:
+    '''Return a range of entries from a stream between two IDs, inclusive.
+
+    Args:
+        args: The list of arguments where args[0] is the key, args[1] is the
+              start ID, and args[2] is the end ID. Use - for the minimum ID
+              and + for the maximum ID.
+
+    Returns:
+        A RESP array of matching stream entries.
+    '''
     key = args[0]
     store_entry = STORE.get(key)
 
@@ -339,6 +486,16 @@ def run_xrange(args: list[str]) -> bytes:
 
 
 def get_entry_matches(stream: list[tuple[str, dict[str, str]]], stream_id: str) -> list[tuple[str, list[str]]]:
+    '''Return all stream entries with an ID greater than the given stream ID.
+
+    Args:
+        stream: The list of stream entries to search.
+        stream_id: The exclusive lower bound ID.
+
+    Returns:
+        A list of tuples where each tuple contains an entry ID and a flat
+        list of alternating field keys and values.
+    '''
     # Exclusive comparison; entries with an ID equal to stream_id are not included.
     start_ms_time, start_seq_num = parse_stream_id(stream_id)
 
@@ -358,6 +515,13 @@ def get_entry_matches(stream: list[tuple[str, dict[str, str]]], stream_id: str) 
 
 
 def build_stream_response(resp_array: list[str], key: str, matches: list[tuple[str, list[str]]]) -> None:
+    '''Append a stream's key and entries to an existing RESP array in place.
+
+    Args:
+        resp_array: The RESP array to append to.
+        key: The stream key.
+        matches: The list of matching stream entries.
+    '''
     entries = build_entries_array(matches)
     resp_array.append('*2\r\n')  # Each stream is a 2-element array
     resp_array.append(f'${len(key)}\r\n{key}\r\n')  # Stream key
@@ -365,6 +529,16 @@ def build_stream_response(resp_array: list[str], key: str, matches: list[tuple[s
 
 
 async def run_xread(args: list[str]) -> bytes:
+    '''Read entries from one or more streams starting after a given ID.
+
+    Args:
+        args: The list of arguments including optional BLOCK and timeout,
+              followed by STREAMS, stream keys, and their respective start IDs.
+
+    Returns:
+        A RESP array of streams and their matching entries, or a null array
+        if the timeout expires with no new entries.
+    '''
     timeout = None
     if 'block' in args:
         stream_args = args[3:]  # Skip 'BLOCK', timeout, and 'STREAMS'
@@ -432,6 +606,15 @@ async def run_xread(args: list[str]) -> bytes:
 
 
 def run_incr(args: list[str]) -> bytes:
+    '''Increment the integer value stored at a key by one.
+
+    Args:
+        args: The list of arguments where args[0] is the key to increment.
+
+    Returns:
+        The new value as a RESP integer, or an error if the value is not
+        a valid integer.
+    '''
     key = args[0]
     store_entry = STORE.get(key)
 
@@ -448,7 +631,12 @@ def run_incr(args: list[str]) -> bytes:
     return f':{result}\r\n'.encode()
 
 
-def run_info(args: list[str]) -> bytes: 
+def run_info(args: list[str]) -> bytes:
+    '''Return server information and statistics for the replication section.
+
+    Returns:
+        The replication details as a RESP bulk string.
+    '''
     content = '# Replication\r\n'
     for key, value in SERVER_INFO.items():
         content += f'{key}:{value}\r\n'
@@ -456,11 +644,22 @@ def run_info(args: list[str]) -> bytes:
 
 
 def run_replconf(args: list[str]) -> bytes:
+    '''Acknowledge a REPLCONF command from a replica.
+
+    Returns:
+        +OK on success.
+    '''
     return b'+OK\r\n'
 
 
 def run_psync(args: list[str]) -> bytes:
+    '''Initiate full resynchronization with a replica.
+
+    Returns:
+        A +FULLRESYNC response containing the replication ID and offset.
+    '''
     return f'+FULLRESYNC {SERVER_INFO['master_replid']} {SERVER_INFO['master_repl_offset']}\r\n'.encode()
+
 
 COMMANDS = {
     'PING': run_ping,
