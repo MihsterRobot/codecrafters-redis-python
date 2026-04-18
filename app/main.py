@@ -16,16 +16,23 @@ async def run_cmd(name: str, arg: list[str]) -> bytes:
         arg: The list of arguments to pass to the handler.
 
     Returns:
-        The RESP-encoded response as bytes.
+        The RESP-encoded bytes returned by the command handler.
     '''
     handler = c.COMMANDS[name]
     result = handler(arg)
-
-    # Await the result if the handler is a coroutine (e.g. BLPOP, XREAD).
     if inspect.iscoroutine(result):
         result = await result
-
     return result
+
+
+async def replicate(reader):
+    while True:
+        data = await reader.read(1024)
+        if data == b'':
+            break
+        cmd_name, args = r.parse_resp(data)
+        if cmd_name in c.COMMANDS:
+            await run_cmd(cmd_name, args)
 
 
 async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
@@ -157,12 +164,12 @@ async def main() -> None:
         await writer.drain()
         await reader.read(1024)  # Wait for +FULLRESYNC response.
 
-    # Start the TCP server and begin accepting client connections.
-    # handle_client is passed as a callback; the event loop calls it with a
-    # (reader, writer) pair each time a new client connects.
+        asyncio.create_task(replicate(reader))
+
+    # Set up the TCP server with handle_client as the callback for each new connection.
     server = await asyncio.start_server(handle_client, 'localhost', port)
-    
-    # Run the event loop indefinitely, accepting and handling client connections.
+
+    # Start accepting connections and run the event loop until interrupted.
     await server.serve_forever()
 
 
