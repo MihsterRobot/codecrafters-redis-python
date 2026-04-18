@@ -640,7 +640,7 @@ def run_info(args: list[str]) -> bytes:
     content = '# Replication\r\n'
     for key, value in SERVER_INFO.items():
         content += f'{key}:{value}\r\n'
-    return f'${len(content)}\r\n{content}'.encode()  # Omit trailing \r\n; content already ends with \r\n from the loop.  
+    return f'${len(content)}\r\n{content}\r\n'.encode()
 
 
 def run_replconf(args: list[str]) -> bytes:
