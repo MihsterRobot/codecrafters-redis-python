@@ -25,12 +25,12 @@ async def run_cmd(name: str, arg: list[str]) -> bytes:
     return result
 
 
-async def replicate(reader):
+async def handle_replication(reader):
     while True:
         data = await reader.read(1024)
         if data == b'':
             break
-        cmd_name, args = r.parse_resp(data)
+        cmd_name, args, bytes_consumed = r.parse_resp(data)
         if cmd_name in c.COMMANDS:
             await run_cmd(cmd_name, args)
 
@@ -57,7 +57,7 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
             await writer.wait_closed()
             break
 
-        cmd_name, args = r.parse_resp(request)
+        cmd_name, args, _ = r.parse_resp(request)
 
         # MULTI and EXEC are handled here rather than in COMMANDS since they
         # require access to the per-connection transaction state.
@@ -164,7 +164,7 @@ async def main() -> None:
         await writer.drain()
         await reader.read(1024)  # Wait for +FULLRESYNC response.
 
-        asyncio.create_task(replicate(reader))
+        await asyncio.create_task(handle_replication(reader))
 
     # Set up the TCP server with handle_client as the callback for each new connection.
     server = await asyncio.start_server(handle_client, 'localhost', port)

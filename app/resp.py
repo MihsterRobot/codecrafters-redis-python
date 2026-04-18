@@ -1,13 +1,13 @@
 '''RESP2 protocol parser for decoding Redis client commands.'''
 
-def parse_resp(data: bytes) -> tuple[str, list[str]]:
-    '''Parse the RESP-encoded input to derive its command name and arguments. 
+def parse_resp(data: bytes) -> tuple[str, list[str], int]:
+    '''Parse the RESP-encoded input to derive its command name, arguments, and byte length. 
 
     Args:
         data: The RESP-encoded input.
 
     Returns:
-        A tuple containing the command name and a list of its arguments.
+        A tuple containing the command name, a list of its arguments, and the number of bytes consumed.
     '''
     crlf = b'\r\n'
     tokens = data.split(crlf)
@@ -22,5 +22,9 @@ def parse_resp(data: bytes) -> tuple[str, list[str]]:
 
     cmd_name = cmd_parts[0]
     args = cmd_parts[1:] if len(cmd_parts) > 1 else []
+
+    # Rejoin consumed tokens to calculate the byte length of the parsed command.
+    consumed = crlf.join(tokens[:stop]) + crlf
+    bytes_consumed = len(consumed)
     
-    return cmd_name, args
+    return cmd_name, args, bytes_consumed
