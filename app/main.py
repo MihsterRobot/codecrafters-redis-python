@@ -166,7 +166,7 @@ async def main() -> None:
         await writer.drain()
         await reader.read(1024)  # Wait for +FULLRESYNC response.
 
-        await asyncio.create_task(handle_replication(reader))
+        asyncio.create_task(handle_replication(reader))
 
     # Set up the TCP server with handle_client as the callback for each new connection.
     server = await asyncio.start_server(handle_client, 'localhost', port)
