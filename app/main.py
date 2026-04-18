@@ -25,14 +25,16 @@ async def run_cmd(name: str, arg: list[str]) -> bytes:
     return result
 
 
-async def handle_replication(reader):
+async def handle_replication(reader: asyncio.StreamReader) -> None:
     while True:
         data = await reader.read(1024)
         if data == b'':
             break
-        cmd_name, args, bytes_consumed = r.parse_resp(data)
-        if cmd_name in c.COMMANDS:
-            await run_cmd(cmd_name, args)
+        while data:
+            cmd_name, args, bytes_consumed = r.parse_resp(data)
+            if cmd_name in c.COMMANDS:
+                await run_cmd(cmd_name, args)
+            data = data[bytes_consumed:]
 
 
 async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
