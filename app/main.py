@@ -39,9 +39,10 @@ async def handle_replication(reader: asyncio.StreamReader, writer: asyncio.Strea
         writer: The write end of the replication connection to the master.
     '''
     global replica_repl_offset
+    print('handle_replication executed')  # Debugging
     while True:
         data = await reader.read(1024)
-        print('replication data:', data)
+        print('replication data:', data)  # Debugging
         if data == b'':
             break
 
@@ -203,6 +204,7 @@ async def main() -> None:
         # since it's an infinite loop. create_task allows the coroutine to run in the background
         # while 'main' continues to execute start_server and serve_forever.
         asyncio.create_task(handle_replication(reader, writer))
+        print('task created')  # Debugging
 
     # Set up the TCP server with handle_client as the callback for each new connection.
     server = await asyncio.start_server(handle_client, 'localhost', port)
