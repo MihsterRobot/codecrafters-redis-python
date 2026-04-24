@@ -38,9 +38,9 @@ async def handle_replication(reader: asyncio.StreamReader, writer: asyncio.Strea
         reader: The read end of the replication connection to the master.
         writer: The write end of the replication connection to the master.
     '''
+    global replica_repl_offset
     while True:
         data = await reader.read(1024)
-        global replica_repl_offset
         if data == b'':
             break
         while data:
