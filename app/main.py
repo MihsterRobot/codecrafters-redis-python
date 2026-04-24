@@ -7,6 +7,9 @@ import inspect
 from . import resp as r
 from . import commands as c
 
+# Tracks the number of bytes received and processed from the master.
+replica_repl_offset = 0
+
 
 async def run_cmd(name: str, arg: list[str]) -> bytes:
     '''Look up and execute a command handler by name, awaiting it if it is a coroutine.
@@ -25,20 +28,42 @@ async def run_cmd(name: str, arg: list[str]) -> bytes:
     return result
 
 
-async def handle_replication(reader: asyncio.StreamReader) -> None:
+async def handle_replication(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
+    '''Continuously read and execute commands propagated from the master server.
+
+    Reads incoming data from the replication connection, parses each RESP-encoded
+    command, and executes it against the local data store without sending a response.
+
+    Args:
+        reader: The read end of the replication connection to the master.
+        writer: The write end of the replication connection to the master.
+    '''
     while True:
         data = await reader.read(1024)
+        global replica_repl_offset
         if data == b'':
             break
         while data:
             cmd_name, args, bytes_consumed = r.parse_resp(data)
+            replica_repl_offset += bytes_consumed
+
+            if cmd_name == 'REPLCONF' and args[0] == 'GETACK':
+                writer.write(f'*3\r\n$8\r\nREPLCONF\r\n$3\r\nACK\r\n${len(str(replica_repl_offset))}\r\n{replica_repl_offset}\r\n'.encode())
+                await writer.drain()
+
             if cmd_name in c.COMMANDS:
-                await run_cmd(cmd_name, args)
+                # Propagated commands run silently, which means nothing is written to the master.
+                await run_cmd(cmd_name, args)  
             data = data[bytes_consumed:]
 
 
 async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
-    '''Manage the lifecycle of a single client connection, including command parsing, dispatch, and transaction state.'''
+    '''Manage the lifecycle of a single client connection, including command parsing, dispatch, and transaction state.
+
+    Args:
+        reader: The read end of the client connection.
+        writer: The write end of the client connection.
+    '''
     in_transaction = False  # Track whether the client has an active transaction opened with MULTI.
     queued_cmds = []
 
@@ -166,7 +191,11 @@ async def main() -> None:
         await writer.drain()
         await reader.read(1024)  # Wait for +FULLRESYNC response.
 
-        asyncio.create_task(handle_replication(reader))
+        # create_task schedules a coroutine to run concurrently as a background task.
+        # Using 'await' would block 'main' until handle_replication is finished, which is never
+        # since it's an infinite loop. create_task allows the coroutine to run in the background
+        # while 'main' continues to execute start_server and serve_forever.
+        asyncio.create_task(handle_replication(reader, writer))
 
     # Set up the TCP server with handle_client as the callback for each new connection.
     server = await asyncio.start_server(handle_client, 'localhost', port)

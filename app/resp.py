@@ -9,13 +9,16 @@ def parse_resp(data: bytes) -> tuple[str, list[str], int]:
     Returns:
         A tuple containing the command name, a list of its arguments, and the number of bytes consumed.
     '''
-    crlf = b'\r\n'
+    crlf = b'\r\n'  # split() expects a bytes separator because 'data' is a bytes object.
     tokens = data.split(crlf)
 
     # Strip the leading '*' from the array marker and convert the element count to an int.
     num_elements = int(tokens[0][1:])
 
+    # Tokens alternate between size markers (odd indexes) and values (even indexes).
+    # stop accounts for the leading array marker at index 0, hence '+ 1'.
     stop = num_elements * 2 + 1
+
     cmd_parts = []
     for i in range(2, stop, 2):
         cmd_parts.append(tokens[i].decode())

@@ -6,17 +6,23 @@ import asyncio
 from time import time
 from typing import NamedTuple
 
+# Map keys to StoreEntry objects representing the Redis data store.
 STORE = {}
+
+# Map keys to lists of asyncio events for blocking commands (e.g., BLPOP, XREAD).
 WAITERS = {}
 
-# REPLICA_WRITERS only contains writers for connections where PSYNC was received.
+# Contains writers for connections where PSYNC was received.
 REPLICA_WRITERS = []
+
+# Commands that modify STORE and must be propagated to replicas.
 WRITE_COMMANDS = ['SET', 'RPUSH', 'LPUSH', 'LPOP', 'BLPOP', 'XADD', 'INCR']
 
+# Server configuration and replication metadata.
 SERVER_INFO = {
-    'role': 'master',
-    'master_replid':  secrets.token_hex(20),
-    'master_repl_offset': '0',
+    'role': 'master',  # The server's replication role ('master' or 'slave').
+    'master_replid': secrets.token_hex(20),  # Unique replication ID used to identify the master.
+    'master_repl_offset': '0',  # Number of bytes the master has propagated to replicas.
 }
 
 
