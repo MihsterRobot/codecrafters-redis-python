@@ -190,6 +190,7 @@ async def main() -> None:
         writer.write(b'*3\r\n$5\r\nPSYNC\r\n$1\r\n?\r\n$2\r\n-1\r\n')
         await writer.drain()
         await reader.read(1024)  # Wait for +FULLRESYNC response.
+        await reader.read(1024)  # Consume the RDB file.
 
         # create_task schedules a coroutine to run concurrently as a background task.
         # Using 'await' would block 'main' until handle_replication is finished, which is never
