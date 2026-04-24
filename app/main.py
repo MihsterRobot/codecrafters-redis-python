@@ -41,6 +41,7 @@ async def handle_replication(reader: asyncio.StreamReader, writer: asyncio.Strea
     global replica_repl_offset
     while True:
         data = await reader.read(1024)
+        print('replication data:', data)
         if data == b'':
             break
 
