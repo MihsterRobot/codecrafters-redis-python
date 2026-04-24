@@ -46,9 +46,9 @@ async def handle_replication(reader: asyncio.StreamReader, writer: asyncio.Strea
         while data:
             cmd_name, args, bytes_consumed = r.parse_resp(data)
             replica_repl_offset += bytes_consumed
+            print('cmd_name:', cmd_name, 'args:', args)
 
             if cmd_name == 'REPLCONF' and args[0] == 'GETACK':
-                print('cmd_name:', cmd_name, 'args:', args)
                 writer.write(f'*3\r\n$8\r\nREPLCONF\r\n$3\r\nACK\r\n${len(str(replica_repl_offset))}\r\n{replica_repl_offset}\r\n'.encode())
                 await writer.drain()
 
